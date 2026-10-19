@@ -7,7 +7,7 @@
 ## การติดตั้ง (เฟส 1)
 ทุก node รันบนเครื่องเดียวด้วย `docker compose` (ตอนนี้คือเครื่อง dev Linux ย้ายไป N100 ภายหลัง)
 - `db` Postgres · `api` backend (modular monolith) และเสิร์ฟ UI ตู้เป็น static ที่ origin เดียวกัน · `mock` Prism (dev profile)
-- ภายนอกมีแค่ Gemini Live (Vertex AI `asia-southeast1`)
+- ภายนอกมีแค่ Gemini Live: เดโมใช้ Gemini API คีย์ฟรีของ AI Studio (ผู้ทดสอบที่ยินยอมเท่านั้น) ก่อนใช้กับลูกค้าจริงต้องเปลี่ยนเป็น Vertex AI `asia-southeast1`
 - ไม่มีคีย์ตู้ในเฟส 1: `api` bind ที่ `127.0.0.1` เท่านั้น
 
 ## Contexts
@@ -16,7 +16,7 @@
 |---|---|---|---|
 | menu | crud | เมนูเครื่องดื่ม กลุ่มตัวเลือก (ขนาด ความหวาน นม) ราคา สถานะพร้อมขาย | ไฟล์ `data/menu.json` (เฟส 1 ยังไม่มีตาราง อ่านใหม่ทุกครั้ง) |
 | ordering | full | ตะกร้า ยืนยันออเดอร์ ออกหมายเลขคิวรายวัน | `carts`, `cart_lines`, `orders`, `order_lines`, `queue_counters` |
-| voice | light | ความยินยอมก่อนสั่งด้วยเสียง เปิดเซสชันเสียง ออกโทเคนชั่วคราวของ Gemini Live | `voice_sessions` |
+| voice | light | ความยินยอมก่อนสั่งด้วยเสียง เปิดเซสชันเสียง ออกข้อมูลเชื่อมต่อ Gemini Live | `voice_sessions`; ข้อความยินยอมใน `data/voice-consent.json` |
 
 context ของเฟสถัดไป (payment, face-identity, membership, tenancy, device) ยังไม่สร้าง ต้องถามผู้ใช้ก่อน
 
@@ -36,7 +36,8 @@ context ของเฟสถัดไป (payment, face-identity, membership, t
 | ordering | ตัวนับคิว | ออกเลขคิวถัดไปของวันทำการ ใน transaction เดียวกับการบันทึกออเดอร์ | `QueueNumberSequence` |
 | ordering | วันทำการ | วันตามเวลา Asia/Bangkok ใช้รีเซ็ตคิว | `BusinessDay` |
 | ordering | เงิน | จำนวนเงินหน่วยสตางค์ (จำนวนเต็ม) | `Money` |
-| voice | เซสชันเสียง | การสั่งด้วยเสียงหนึ่งครั้งบนตู้ ผูกกับเวอร์ชันข้อความยินยอม ไม่ผูกกับตัวบุคคล | `VoiceSession` |
+| voice | เซสชันเสียง | การสั่งด้วยเสียงของตะกร้าหนึ่งใบ เก็บหลักฐานความยินยอม (เวลา ตู้ เวอร์ชันข้อความ) ไม่ผูกกับตัวบุคคล | `VoiceSession` (aggregate root) |
+| voice | ข้อมูลเชื่อมต่อเสียง | ข้อมูลชั่วคราวให้ตู้เปิดเซสชัน Gemini Live ใช้เริ่มได้ภายในเวลาจำกัด | `VoiceConnection` |
 | voice | ข้อความยินยอมเรื่องเสียง | ข้อความที่แสดงก่อนเริ่มพูด มีเวอร์ชัน | `VoiceConsentText` |
 
 ## การคุยข้าม context
@@ -44,7 +45,9 @@ context ของเฟสถัดไป (payment, face-identity, membership, t
 | ผู้ใช้ | ต้องการ | ผ่าน |
 |---|---|---|
 | ordering | ราคา ตัวเลือก และสถานะพร้อมขายของเมนู | `MenuLookup` (port ใน `ordering/application/ports.ts`) ← `JsonMenuRepository` จาก `menu/index.ts` ต่อสายใน `src/app.ts` |
-| voice | — | ไม่เรียก context อื่น: Gemini ส่ง function call ให้ UI ตู้ แล้ว UI เรียก API ตะกร้าของ ordering ชุดเดียวกับการแตะจอ |
+| voice | ตะกร้ายังเปิดและไม่หมดอายุไหม (UC-02 R5) | `CartAvailability` (port ใน `voice/application/ports.ts`) ← `ordering/index.ts` |
+| voice | ออกโทเคนชั่วคราวของ Gemini Live | `VoiceGateway` (port) ← adapter ใน `voice/infrastructure` เลือกด้วย `VOICE_PROVIDER`: `ai-studio` (เดโม) / `vertex` (ลูกค้าจริง) |
+| UI ตู้ | สั่งผ่านเสียง | Gemini ส่ง function call ให้ UI ตู้ แล้ว UI เรียก API ตะกร้าของ ordering ชุดเดียวกับการแตะจอ (UC-03) |
 
 ## กฎตัวเลขทางธุรกิจ
 
