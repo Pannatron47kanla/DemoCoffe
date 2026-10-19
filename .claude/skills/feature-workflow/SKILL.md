@@ -7,10 +7,10 @@ description: ใช้เมื่อเริ่มฟีเจอร์ให�
 
 ทำทีละขั้นตามลำดับ หยุดให้ผู้ใช้รีวิวที่จุด **[REVIEW]** ก่อนไปขั้นถัดไป ห้ามข้ามไปเขียนโค้ดก่อนผ่านขั้นที่ 1–2
 
-skill นี้เป็นตัวคุมลำดับขั้น ถ้าติดตั้ง Superpowers ไว้ ให้เรียก skill ของ Superpowers ที่ระบุในแต่ละขั้น และทำตามกติกาในหัวข้อ "ใช้ร่วมกับ Superpowers" ของ CLAUDE.md ถ้าไม่ได้ติดตั้งก็ทำตามขั้นข้างล่างได้เหมือนเดิม
+skill นี้เป็นตัวคุมลำดับขั้น ถ้าติดตั้ง Superpowers ไว้ ให้เรียก skill ของ Superpowers ที่ระบุในแต่ละขั้น และทำตามหัวข้อ "ลำดับความสำคัญเมื่อ skill ซ้อนกัน" กับ "ใช้ร่วมกับ Superpowers" ใน AGENTS.md ถ้าไม่ได้ติดตั้งก็ทำตามขั้นข้างล่างได้เหมือนเดิม
 
 ## ขั้นที่ 1: Use case + Acceptance criteria
-(Superpowers: `brainstorming` ใช้ถามคำถามทีละข้อเพื่อหาเคสและกฎที่ยังไม่ชัด แต่เขียนผลลงไฟล์ use case ข้างล่างแทน `docs/superpowers/specs/`)
+(Superpowers: `brainstorming` ใช้ถามคำถามทีละข้อเพื่อหาเคสและกฎที่ยังไม่ชัด แต่เขียนผลลงไฟล์ use case ข้างล่างแทน `docs/superpowers/specs/` เมื่อ brainstorming จบให้กลับมาทำขั้นที่ 2 ต่อ ไม่ต้องเรียก `writing-plans` ตามที่ brainstorming บอก แผนรอไว้ขั้นที่ 4)
 
 สร้าง `docs/usecases/UC-xx-<name>.md` ประกอบด้วย
 - ผู้ใช้งาน, เงื่อนไขก่อนเริ่ม, ขั้นตอนหลัก, กฎทางธุรกิจ (ตัวเลขต้องชัด)
@@ -48,7 +48,7 @@ skill นี้เป็นตัวคุมลำดับขั้น ถ้�
 (Superpowers: `writing-plans` บันทึกที่ `docs/plans/<ISSUE-KEY>-<ชื่อสั้น>.md` หนึ่ง task ต่อ AC เรียงจากในออกนอกตามชั้น DDD ใส่รหัส AC และ commit message แบบ `<KEY> AC<n>: ...` ในทุก task) **[REVIEW]**
 
 ## ขั้นที่ 5: TDD ทีละ AC
-(Superpowers: `using-git-worktrees` ถ้าต้องการแยก workspace ชื่อ branch ตามกติกาทีม แล้วใช้ `subagent-driven-development` หรือ `executing-plans` ทำตามแผน และ `test-driven-development` ในทุก task subagent ต้องได้กติกาจาก CLAUDE.md และ `ddd-architecture` ไปด้วย)
+(Superpowers: `using-git-worktrees` ถ้าต้องการแยก workspace ใช้ worktree แบบ native ชื่อ branch ตามกติกาทีม แล้วใช้ `subagent-driven-development` หรือ `executing-plans` ทำตามแผน และ `test-driven-development` ในทุก task subagent ต้องได้กติกาจาก AGENTS.md และ `ddd-architecture` ไปด้วย)
 
 โหลด skill `ddd-architecture` ก่อนเขียนโค้ด เพื่อวางไฟล์ให้ถูก context และถูกชั้น และสร้างจากในออกนอก (domain → application → infrastructure → interface/http)
 

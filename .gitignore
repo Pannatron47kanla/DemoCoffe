@@ -2,3 +2,10 @@ node_modules/
 dist/
 .env
 *.log
+
+# AI tooling (ของแต่ละเครื่อง)
+.code-review-graph/
+.claude/worktrees/
+.worktrees/
+.mcp.json
+.claude/settings.local.json
