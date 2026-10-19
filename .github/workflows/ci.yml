@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npx -y @redocly/cli@1.25.0 lint openapi.yaml
+      # migrate จากศูนย์ → seed บน DB ใหม่ เพื่อยืนยันว่า migration และ seed ใช้ได้จริง
+      - run: docker compose up -d --wait db
+      - run: npm run migrate
+      - run: npm run seed
+      # unit + repository + e2e (repository/e2e เปิด Postgres เองผ่าน Testcontainers)
+      - run: npm test
