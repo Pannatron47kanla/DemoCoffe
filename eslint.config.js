@@ -1,0 +1,14 @@
+import tseslint from 'typescript-eslint';
+import boundaries from './eslint.boundaries.js';
+
+export default [
+  { ignores: ['node_modules/**', 'dist/**'] },
+  ...tseslint.configs.recommended,
+  {
+    rules: {
+      // express ต้องมีพารามิเตอร์ครบ 4 ตัวใน error handler
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    },
+  },
+  ...boundaries,
+];
