@@ -1,0 +1,428 @@
+openapi: 3.1.0
+info:
+  title: DemoCoffe Kiosk API
+  version: 0.1.0
+  description: |
+    เฟส 1 MVP — ตู้เดี่ยว 1 สาขา ไม่มีคีย์ตู้ (api รับเฉพาะ 127.0.0.1)
+    เงินทุกจุดเป็น `Money` (บาท ทศนิยม 2 ตำแหน่งเป็นข้อความ) ระบบคิดราคาเอง ไม่รับราคาจากตู้
+security: []   # เฟส 1 ไม่มีคีย์ตู้ (api bind 127.0.0.1)
+servers:
+  - url: http://127.0.0.1:3000
+tags:
+  - name: ordering
+    description: UC-01 สั่งเครื่องดื่มที่ตู้
+
+paths:
+  /carts:
+    post:
+      tags: [ordering]
+      operationId: startCart
+      summary: เริ่มสั่ง สร้างตะกร้าว่าง (AC1)
+      responses:
+        '201':
+          description: ตะกร้าว่าง
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+              example:
+                id: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60
+                status: OPEN
+                expiresAt: '2026-10-19T02:45:00Z'
+                lines: []
+                totalCups: 0
+                total: { amount: '0.00', currency: THB }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /carts/{cartId}:
+    parameters:
+      - $ref: '#/components/parameters/CartId'
+    get:
+      tags: [ordering]
+      operationId: getCart
+      summary: ดูตะกร้า
+      responses:
+        '200':
+          description: ตะกร้าล่าสุด
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+              examples: { CartWithLatte: { $ref: '#/components/examples/CartWithLatte' } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /carts/{cartId}/lines:
+    parameters:
+      - $ref: '#/components/parameters/CartId'
+    post:
+      tags: [ordering]
+      operationId: addCartLine
+      summary: เพิ่มรายการ ถ้าเมนูและตัวเลือกชุดเดียวกันมีอยู่แล้วจะรวมจำนวน (AC2, AC3)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddCartLineRequest' }
+            example:
+              menuItemId: latte
+              optionChoiceIds: [size-l, milk-oat]
+              quantity: 2
+      responses:
+        '200':
+          description: ตะกร้าหลังเพิ่มรายการ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+              examples:
+                CartWithLatte: { $ref: '#/components/examples/CartWithLatte' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/CartRuleViolation' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /carts/{cartId}/lines/{lineId}:
+    parameters:
+      - $ref: '#/components/parameters/CartId'
+      - $ref: '#/components/parameters/LineId'
+    patch:
+      tags: [ordering]
+      operationId: changeCartLineQuantity
+      summary: แก้จำนวน (AC4)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangeQuantityRequest' }
+            example: { quantity: 4 }
+      responses:
+        '200':
+          description: ตะกร้าหลังแก้จำนวน
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+              examples: { CartWithLatte: { $ref: '#/components/examples/CartWithLatte' } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/CartRuleViolation' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    delete:
+      tags: [ordering]
+      operationId: removeCartLine
+      summary: ลบรายการ (AC5)
+      responses:
+        '200':
+          description: ตะกร้าหลังลบรายการ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cart' }
+              example:
+                id: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60
+                status: OPEN
+                expiresAt: '2026-10-19T02:47:00Z'
+                lines: []
+                totalCups: 0
+                total: { amount: '0.00', currency: THB }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/CartRuleViolation' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /carts/{cartId}/checkout:
+    parameters:
+      - $ref: '#/components/parameters/CartId'
+    post:
+      tags: [ordering]
+      operationId: checkoutCart
+      summary: ยืนยันออเดอร์และรับหมายเลขคิว (AC15–AC25)
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: key เดิมกับตะกร้าเดิมคืนออเดอร์เดิม (AC18) ใช้กับตะกร้าอื่นไม่ได้ (AC25)
+          schema: { type: string, minLength: 1, maxLength: 100 }
+          example: k-123
+      responses:
+        '201':
+          description: สร้างออเดอร์ใหม่
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+              examples: { PlacedOrder: { $ref: '#/components/examples/PlacedOrder' } }
+        '200':
+          description: ยืนยันซ้ำด้วย key เดิม คืนออเดอร์เดิม (AC18)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+              examples: { PlacedOrder: { $ref: '#/components/examples/PlacedOrder' } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/CheckoutRuleViolation' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+components:
+  parameters:
+    CartId:
+      name: cartId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+      example: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60
+    LineId:
+      name: lineId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+      example: 3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51
+
+  schemas:
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount: { type: string, pattern: '^\d+\.\d{2}$', example: '80.00' }
+        currency: { type: string, enum: [THB], example: THB }
+
+    ChosenOption:
+      type: object
+      required: [choiceId, groupName, name, priceDelta]
+      properties:
+        choiceId: { type: string, example: size-l }
+        groupName: { type: string, example: ขนาด }
+        name: { type: string, example: L }
+        priceDelta: { $ref: '#/components/schemas/Money' }
+
+    CartLine:
+      type: object
+      required: [id, menuItemId, name, options, quantity, unitPrice, lineTotal]
+      properties:
+        id: { type: string, format: uuid, example: 3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51 }
+        menuItemId: { type: string, example: latte }
+        name: { type: string, example: ลาเต้ }
+        options:
+          type: array
+          items: { $ref: '#/components/schemas/ChosenOption' }
+        quantity: { type: integer, example: 2 }
+        unitPrice: { $ref: '#/components/schemas/Money' }
+        lineTotal: { $ref: '#/components/schemas/Money' }
+
+    Cart:
+      type: object
+      required: [id, status, expiresAt, lines, totalCups, total]
+      properties:
+        id: { type: string, format: uuid, example: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60 }
+        status: { type: string, enum: [OPEN, CHECKED_OUT], example: OPEN }
+        expiresAt:
+          type: string
+          format: date-time
+          description: หมดอายุเมื่อไม่มีการแก้ไข 15 นาที (R7)
+          example: '2026-10-19T02:45:00Z'
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/CartLine' }
+        totalCups: { type: integer, description: ไม่เกิน 20 (R5), example: 2 }
+        total: { $ref: '#/components/schemas/Money' }
+
+    AddCartLineRequest:
+      type: object
+      required: [menuItemId, quantity]
+      properties:
+        menuItemId: { type: string, minLength: 1, example: latte }
+        optionChoiceIds:
+          type: array
+          items: { type: string }
+          default: []
+          example: [size-l, milk-oat]
+        quantity:
+          type: integer
+          description: 1–10 (R4) นอกช่วงตอบ 409 QUANTITY_OUT_OF_RANGE ไม่ใช่ 400
+          example: 2
+
+    ChangeQuantityRequest:
+      type: object
+      required: [quantity]
+      properties:
+        quantity:
+          type: integer
+          description: 1–10 (R4) นอกช่วงตอบ 409 QUANTITY_OUT_OF_RANGE
+          example: 4
+
+    OrderLine:
+      type: object
+      required: [menuItemId, name, options, quantity, unitPrice, lineTotal]
+      properties:
+        menuItemId: { type: string, example: latte }
+        name: { type: string, description: ชื่อ ณ ตอนยืนยัน (AC24), example: ลาเต้ }
+        options:
+          type: array
+          items: { $ref: '#/components/schemas/ChosenOption' }
+        quantity: { type: integer, example: 2 }
+        unitPrice: { $ref: '#/components/schemas/Money' }
+        lineTotal: { $ref: '#/components/schemas/Money' }
+
+    Order:
+      type: object
+      required: [id, cartId, status, queueNumber, placedAt, lines, total]
+      properties:
+        id: { type: string, format: uuid, example: 0c6a4f2e-9d1b-4e3a-8f5c-6b7a8d9e0f12 }
+        cartId: { type: string, format: uuid, example: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60 }
+        status: { type: string, enum: [PLACED], example: PLACED }
+        queueNumber:
+          type: integer
+          minimum: 1
+          description: เรียงต่อวันทำการ Asia/Bangkok เริ่มที่ 1 (R10)
+          example: 1
+        placedAt: { type: string, format: date-time, example: '2026-10-19T02:30:00Z' }
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/OrderLine' }
+        total: { $ref: '#/components/schemas/Money' }
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - VALIDATION_ERROR
+            - MENU_ITEM_NOT_FOUND
+            - CART_NOT_FOUND
+            - CART_LINE_NOT_FOUND
+            - MENU_ITEM_UNAVAILABLE
+            - OPTION_REQUIRED
+            - INVALID_OPTION
+            - QUANTITY_OUT_OF_RANGE
+            - CART_LIMIT_REACHED
+            - CART_EXPIRED
+            - CART_ALREADY_CHECKED_OUT
+            - CART_EMPTY
+            - PRICE_CHANGED
+            - IDEMPOTENCY_KEY_CONFLICT
+            - INTERNAL_ERROR
+          example: CART_LIMIT_REACHED
+        message: { type: string, example: ตะกร้ามีได้ไม่เกิน 20 แก้ว }
+        details:
+          type: object
+          description: |
+            MENU_ITEM_UNAVAILABLE ตอนยืนยัน → `lineIds` (AC21)
+            PRICE_CHANGED → `cart` ที่คิดราคาใหม่แล้ว (AC22)
+            VALIDATION_ERROR → `fields`
+          properties:
+            lineIds:
+              type: array
+              items: { type: string, format: uuid }
+              example: [3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51]
+            cart: { $ref: '#/components/schemas/Cart' }
+            fields:
+              type: array
+              items: { type: string }
+              example: [menuItemId]
+
+  examples:
+    CartWithLatte:
+      summary: ลาเต้ L นมโอ๊ต 2 แก้ว (AC2)
+      value:
+        id: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60
+        status: OPEN
+        expiresAt: '2026-10-19T02:46:00Z'
+        lines:
+          - id: 3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51
+            menuItemId: latte
+            name: ลาเต้
+            options:
+              - { choiceId: size-l, groupName: ขนาด, name: L, priceDelta: { amount: '10.00', currency: THB } }
+              - { choiceId: milk-oat, groupName: นม, name: นมโอ๊ต, priceDelta: { amount: '15.00', currency: THB } }
+            quantity: 2
+            unitPrice: { amount: '80.00', currency: THB }
+            lineTotal: { amount: '160.00', currency: THB }
+        totalCups: 2
+        total: { amount: '160.00', currency: THB }
+    PlacedOrder:
+      summary: ออเดอร์แรกของวัน (AC15)
+      value:
+        id: 0c6a4f2e-9d1b-4e3a-8f5c-6b7a8d9e0f12
+        cartId: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60
+        status: PLACED
+        queueNumber: 1
+        placedAt: '2026-10-19T02:30:00Z'
+        lines:
+          - menuItemId: latte
+            name: ลาเต้
+            options:
+              - { choiceId: size-l, groupName: ขนาด, name: L, priceDelta: { amount: '10.00', currency: THB } }
+              - { choiceId: milk-oat, groupName: นม, name: นมโอ๊ต, priceDelta: { amount: '15.00', currency: THB } }
+            quantity: 2
+            unitPrice: { amount: '80.00', currency: THB }
+            lineTotal: { amount: '160.00', currency: THB }
+        total: { amount: '160.00', currency: THB }
+
+  responses:
+    ValidationError:
+      description: ข้อมูลผิดรูปแบบ (AC6)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            code: VALIDATION_ERROR
+            message: ต้องระบุ menuItemId
+            details: { fields: [menuItemId] }
+    NotFound:
+      description: ไม่พบเมนู ตะกร้า หรือรายการ (AC7, AC13)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            MenuItemNotFound: { value: { code: MENU_ITEM_NOT_FOUND, message: ไม่พบเมนูนี้ } }
+            CartNotFound: { value: { code: CART_NOT_FOUND, message: ไม่พบตะกร้า } }
+            CartLineNotFound: { value: { code: CART_LINE_NOT_FOUND, message: ไม่พบรายการในตะกร้า } }
+    CartRuleViolation:
+      description: ผิดกฎตะกร้า (AC8–AC12, AC14, AC19)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            MenuItemUnavailable: { value: { code: MENU_ITEM_UNAVAILABLE, message: เมนูนี้หมดแล้ว } }
+            OptionRequired: { value: { code: OPTION_REQUIRED, message: ต้องเลือกขนาด } }
+            InvalidOption: { value: { code: INVALID_OPTION, message: ตัวเลือกไม่ตรงกับเมนูนี้ } }
+            QuantityOutOfRange: { value: { code: QUANTITY_OUT_OF_RANGE, message: จำนวนต่อรายการต้องอยู่ระหว่าง 1–10 แก้ว } }
+            CartLimitReached: { value: { code: CART_LIMIT_REACHED, message: ตะกร้ามีได้ไม่เกิน 20 แก้ว } }
+            CartExpired: { value: { code: CART_EXPIRED, message: ตะกร้าหมดอายุ กรุณาเริ่มสั่งใหม่ } }
+            CartAlreadyCheckedOut: { value: { code: CART_ALREADY_CHECKED_OUT, message: ตะกร้านี้ยืนยันแล้ว } }
+    CheckoutRuleViolation:
+      description: ยืนยันไม่ได้ (AC14, AC19–AC22, AC25)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            CartEmpty: { value: { code: CART_EMPTY, message: ตะกร้ายังว่าง } }
+            CartExpired: { value: { code: CART_EXPIRED, message: ตะกร้าหมดอายุ กรุณาเริ่มสั่งใหม่ } }
+            CartAlreadyCheckedOut: { value: { code: CART_ALREADY_CHECKED_OUT, message: ตะกร้านี้ยืนยันแล้ว } }
+            MenuItemUnavailable:
+              value:
+                code: MENU_ITEM_UNAVAILABLE
+                message: บางเมนูหมดแล้ว
+                details: { lineIds: [3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51] }
+            PriceChanged:
+              value:
+                code: PRICE_CHANGED
+                message: ราคามีการเปลี่ยนแปลง กรุณาตรวจยอดใหม่
+                details:
+                  cart:
+                    id: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60
+                    status: OPEN
+                    expiresAt: '2026-10-19T02:46:00Z'
+                    lines:
+                      - id: 3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51
+                        menuItemId: latte
+                        name: ลาเต้
+                        options: []
+                        quantity: 2
+                        unitPrice: { amount: '60.00', currency: THB }
+                        lineTotal: { amount: '120.00', currency: THB }
+                    totalCups: 2
+                    total: { amount: '120.00', currency: THB }
+            IdempotencyKeyConflict: { value: { code: IDEMPOTENCY_KEY_CONFLICT, message: key นี้ใช้กับตะกร้าอื่นแล้ว } }
+    InternalError:
+      description: ระบบขัดข้องที่ไม่ได้คาดไว้ ตู้แสดงให้ติดต่อพนักงาน
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: INTERNAL_ERROR, message: ระบบขัดข้อง กรุณาติดต่อพนักงาน }

@@ -1,0 +1,56 @@
+# Context map
+
+> AI agent อ่านไฟล์นี้ก่อนสร้างหรือย้ายไฟล์ใน `src/modules/` แก้ไฟล์นี้ทุกครั้งที่เพิ่ม context ตาราง หรือคำศัพท์ใหม่
+> ขอบเขตปัจจุบัน: **เฟส 1 MVP** (ตู้เดี่ยว 1 สาขา เมนูตายตัว ตะกร้า ออเดอร์ หมายเลขคิว สั่งด้วยเสียง ยังไม่รับเงินจริง ยังไม่มี tenant)
+> อ้างอิง: `docs/architecture/ข้อเสนอระบบตู้คีออสก์กาแฟV2.html`
+
+## การติดตั้ง (เฟส 1)
+ทุก node รันบนเครื่องเดียวด้วย `docker compose` (ตอนนี้คือเครื่อง dev Linux ย้ายไป N100 ภายหลัง)
+- `db` Postgres · `api` backend (modular monolith) และเสิร์ฟ UI ตู้เป็น static ที่ origin เดียวกัน · `mock` Prism (dev profile)
+- ภายนอกมีแค่ Gemini Live (Vertex AI `asia-southeast1`)
+- ไม่มีคีย์ตู้ในเฟส 1: `api` bind ที่ `127.0.0.1` เท่านั้น
+
+## Contexts
+
+| Context | ระดับ | ดูแลเรื่อง | เป็นเจ้าของ |
+|---|---|---|---|
+| menu | crud | เมนูเครื่องดื่ม กลุ่มตัวเลือก (ขนาด ความหวาน นม) ราคา สถานะพร้อมขาย | ไฟล์ `data/menu.json` (เฟส 1 ยังไม่มีตาราง อ่านใหม่ทุกครั้ง) |
+| ordering | full | ตะกร้า ยืนยันออเดอร์ ออกหมายเลขคิวรายวัน | `carts`, `cart_lines`, `orders`, `order_lines`, `queue_counters` |
+| voice | light | ความยินยอมก่อนสั่งด้วยเสียง เปิดเซสชันเสียง ออกโทเคนชั่วคราวของ Gemini Live | `voice_sessions` |
+
+context ของเฟสถัดไป (payment, face-identity, membership, tenancy, device) ยังไม่สร้าง ต้องถามผู้ใช้ก่อน
+
+## คำศัพท์ (Ubiquitous Language)
+
+| Context | คำ | ความหมาย | ในโค้ด |
+|---|---|---|---|
+| menu | เมนู | เครื่องดื่มหนึ่งรายการ มีราคาตั้งต้น | `MenuItem` |
+| menu | กลุ่มตัวเลือก | เช่น ขนาด ความหวาน นม บอกว่าต้องเลือกหรือไม่ | `OptionGroup` |
+| menu | ตัวเลือก | ค่าหนึ่งในกลุ่ม มีราคาเพิ่ม (อาจเป็น 0) | `OptionChoice` |
+| ordering | เมนูที่สั่งได้ | เมนูในมุมของ ordering (ราคา ตัวเลือก สถานะ) ได้จาก menu ผ่าน `MenuLookup` | `OrderableItem` |
+| ordering | ตะกร้า | รายการที่ลูกค้าเลือกระหว่างสั่ง ยังไม่ยืนยัน | `Cart` (aggregate root) |
+| ordering | รายการในตะกร้า | เมนู + ตัวเลือก + จำนวน | `CartLine` |
+| ordering | ออเดอร์ | ตะกร้าที่ยืนยันแล้ว ราคาถูกตรึงไว้ ณ ตอนยืนยัน | `Order` |
+| ordering | รายการในออเดอร์ | สำเนารายการพร้อมชื่อและราคา ณ ตอนยืนยัน | `OrderLine` |
+| ordering | หมายเลขคิว | เลขเรียงต่อวันทำการ เริ่มที่ 1 แสดงเป็นเลขล้วน | `QueueNumber` |
+| ordering | ตัวนับคิว | ออกเลขคิวถัดไปของวันทำการ ใน transaction เดียวกับการบันทึกออเดอร์ | `QueueNumberSequence` |
+| ordering | วันทำการ | วันตามเวลา Asia/Bangkok ใช้รีเซ็ตคิว | `BusinessDay` |
+| ordering | เงิน | จำนวนเงินหน่วยสตางค์ (จำนวนเต็ม) | `Money` |
+| voice | เซสชันเสียง | การสั่งด้วยเสียงหนึ่งครั้งบนตู้ ผูกกับเวอร์ชันข้อความยินยอม ไม่ผูกกับตัวบุคคล | `VoiceSession` |
+| voice | ข้อความยินยอมเรื่องเสียง | ข้อความที่แสดงก่อนเริ่มพูด มีเวอร์ชัน | `VoiceConsentText` |
+
+## การคุยข้าม context
+
+| ผู้ใช้ | ต้องการ | ผ่าน |
+|---|---|---|
+| ordering | ราคา ตัวเลือก และสถานะพร้อมขายของเมนู | `MenuLookup` (port ใน `ordering/application/ports.ts`) ← `JsonMenuRepository` จาก `menu/index.ts` ต่อสายใน `src/app.ts` |
+| voice | — | ไม่เรียก context อื่น: Gemini ส่ง function call ให้ UI ตู้ แล้ว UI เรียก API ตะกร้าของ ordering ชุดเดียวกับการแตะจอ |
+
+## กฎตัวเลขทางธุรกิจ
+
+| กฎ | ค่า | อยู่ที่ |
+|---|---|---|
+| จำนวนต่อรายการ | 1–10 แก้ว | `CartLine.MAX_QUANTITY` |
+| จำนวนรวมต่อออเดอร์ | ไม่เกิน 20 แก้ว | `Cart.MAX_CUPS` |
+| ตะกร้าหมดอายุเมื่อไม่มีการแก้ไข | 15 นาที | `Cart.IDLE_TIMEOUT_MINUTES` |
+| หมายเลขคิว | เริ่มที่ 1 ทุกวันทำการ (Asia/Bangkok) | `QueueNumber`, `BusinessDay` |

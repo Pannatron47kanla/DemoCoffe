@@ -1,0 +1,74 @@
+# เฟส 1: ทุก node รันบนเครื่องเดียว เปิดพอร์ตเฉพาะ 127.0.0.1
+name: democoffe
+
+services:
+  api:
+    build: .
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://democoffe:democoffe@db:5432/democoffe
+      MENU_PATH: /app/data/menu.json
+      HOST: 0.0.0.0 # ใน container ต้องฟังทุก interface; จำกัดที่ ports ด้านล่างแทน
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data:/app/data:ro # แก้ราคาหรือสถานะหมดใน menu.json ได้โดยไม่ต้อง build ใหม่
+
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: democoffe
+      POSTGRES_USER: democoffe
+      POSTGRES_PASSWORD: democoffe
+      TZ: UTC
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U democoffe -d democoffe"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # npm run migrate → รันไฟล์ใน db/migrations ที่ยังไม่เคยรัน (จดใน schema_migrations)
+  migrate:
+    image: postgres:16-alpine
+    profiles: [tools]
+    depends_on:
+      db: { condition: service_healthy }
+    environment: &pg-client
+      PGHOST: db
+      PGDATABASE: democoffe
+      PGUSER: democoffe
+      PGPASSWORD: democoffe
+    volumes:
+      - ./db:/db:ro
+    entrypoint: ["sh", "/db/scripts/migrate.sh"]
+
+  # npm run seed → ล้างข้อมูลแล้วใส่ชุดข้อมูลตาม AC (db/seed.sql)
+  seed:
+    image: postgres:16-alpine
+    profiles: [tools]
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      <<: *pg-client
+      APP_ENV: development
+    volumes:
+      - ./db:/db:ro
+    entrypoint: ["sh", "/db/scripts/seed.sh"]
+
+  mock:
+    image: stoplight/prism:5.14.2
+    command: ["mock", "-h", "0.0.0.0", "/spec/openapi.yaml"]
+    ports:
+      - "127.0.0.1:4010:4010"
+    volumes:
+      - ./openapi.yaml:/spec/openapi.yaml:ro
+
+volumes:
+  db-data:

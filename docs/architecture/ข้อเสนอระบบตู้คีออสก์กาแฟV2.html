@@ -1,0 +1,604 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>ข้อเสนอระบบตู้คีออสก์กาแฟ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a briefing document — narrow reading column, a sticky contents rail on wide screens, tables and the system diagram allowed to run wider. */
+:root{
+  --bg:#f5f6f3;
+  --surface:#ffffff;
+  --ink:#1d1c19;
+  --muted:#5d5f58;
+  --line:#dcdfd7;
+  --accent:#0d6b63;
+  --accent-soft:#e1efec;
+  --warn:#9a5b00;
+  --warn-soft:#f6ecd9;
+  --ok:#2f6b2c;
+  --ok-soft:#e3efdf;
+  --font-display:"Bai Jamjuree","IBM Plex Sans Thai",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141613;--surface:#1c1f1b;--ink:#e9eae4;--muted:#a3a69c;--line:#30342e;
+  --accent:#5cc2b6;--accent-soft:#1b322f;--warn:#e8b25a;--warn-soft:#352a17;--ok:#8fcf87;--ok-soft:#1f2f1d;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141613;--surface:#1c1f1b;--ink:#e9eae4;--muted:#a3a69c;--line:#30342e;
+  --accent:#5cc2b6;--accent-soft:#1b322f;--warn:#e8b25a;--warn-soft:#352a17;--ok:#8fcf87;--ok-soft:#1f2f1d;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.75;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+code{font-family:var(--font-mono);font-size:.88em;background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+
+.wrap{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:220px minmax(0,1fr);gap:56px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}.toc{display:none}}
+
+/* hero */
+.hero{max-width:1120px;margin:0 auto;padding-block:56px 40px;border-bottom:1px solid var(--line);margin-bottom:40px}
+.kicker{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--font-display);font-weight:700;font-size:clamp(30px,5vw,50px);line-height:1.25;margin:12px 0 16px;text-wrap:balance;max-width:20ch}
+.lede{font-size:18px;color:var(--muted);max-width:62ch;margin:0}
+.meta{margin-top:20px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 20px}
+.facts{margin-top:32px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+@media (max-width:700px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fact{background:var(--surface);padding:16px 18px}
+.fact b{display:block;font-family:var(--font-display);font-size:22px;font-weight:600;line-height:1.3}
+.fact span{font-size:13px;color:var(--muted)}
+
+/* contents */
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:14px;max-height:calc(100vh - 48px);overflow-y:auto}
+.toc p{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 0 3px 12px;border-left:2px solid var(--line)}
+.toc a:hover{color:var(--ink);border-left-color:var(--accent)}
+
+/* sections */
+main{min-width:0}
+section{padding-block:8px 40px;scroll-margin-top:24px}
+section+section{border-top:1px solid var(--line);padding-top:40px}
+h2{font-family:var(--font-display);font-weight:600;font-size:clamp(23px,3vw,29px);line-height:1.35;margin:6px 0 14px;text-wrap:balance}
+h3{font-family:var(--font-display);font-weight:600;font-size:18px;margin:28px 0 8px}
+p{margin:0 0 14px;max-width:68ch}
+ul,ol{margin:0 0 16px;padding-left:22px;max-width:68ch}
+li{margin-bottom:6px}
+li::marker{color:var(--accent)}
+.note{font-size:14px;color:var(--muted)}
+
+/* tables */
+.tbl{overflow-x:auto;margin:6px 0 20px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.6}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+th{font-weight:600;font-size:13px;color:var(--muted);background:var(--bg);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:500}
+.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:13.5px}
+
+/* chips */
+.chip{display:inline-block;font-size:12px;font-weight:500;line-height:1;padding:4px 8px;border-radius:999px;white-space:nowrap;vertical-align:1px}
+.c-ok{background:var(--ok-soft);color:var(--ok)}
+.c-prop{background:var(--accent-soft);color:var(--accent)}
+.c-check{background:var(--warn-soft);color:var(--warn)}
+
+/* callout */
+.callout{border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--surface);padding:14px 18px;border-radius:0 8px 8px 0;margin:8px 0 20px;max-width:68ch}
+.callout.warn{border-left-color:var(--warn)}
+.callout p:last-child{margin:0}
+
+/* steps */
+.steps{list-style:none;padding:0;counter-reset:s;display:grid;gap:10px;max-width:68ch}
+.steps li{counter-increment:s;display:grid;grid-template-columns:32px minmax(0,1fr);gap:12px;margin:0}
+.steps li::before{content:counter(s);font-family:var(--font-mono);font-size:13px;width:28px;height:28px;border-radius:50%;border:1px solid var(--accent);color:var(--accent);display:grid;place-items:center;margin-top:2px}
+
+/* diagram */
+.diagram{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:16px;margin:8px 0 12px}
+.diagram svg{display:block;min-width:820px;width:100%;height:auto}
+.d-zone{fill:var(--bg);stroke:var(--line);stroke-width:1.2}
+.d-box{fill:var(--surface);stroke:var(--line);stroke-width:1}
+.d-key{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1}
+.d-h{fill:var(--ink);font-family:var(--font-display);font-weight:600;font-size:16px}
+.d-t{fill:var(--ink);font-family:var(--font-body);font-size:13px}
+.d-s{fill:var(--muted);font-family:var(--font-body);font-size:11.5px}
+.d-a{stroke:var(--accent);stroke-width:1.6;fill:none}
+.d-head{fill:var(--accent)}
+
+/* phases */
+.phases{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:8px 0 20px}
+@media (max-width:820px){.phases{grid-template-columns:minmax(0,1fr)}}
+.phase{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.phase .tag{font-family:var(--font-mono);font-size:12px;color:var(--accent);letter-spacing:.05em}
+.phase h3{margin:0;font-size:16px;line-height:1.45}
+.phase p{font-size:14px;margin:0;line-height:1.65}
+.phase .done{margin-top:auto;padding-top:10px;border-top:1px dashed var(--line);font-size:13.5px;color:var(--muted)}
+.phase .done b{color:var(--ink);font-weight:600}
+
+/* decision list */
+.asks{list-style:none;padding:0;display:grid;gap:8px;max-width:none}
+.asks li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:0}
+.asks li::before{content:"";width:16px;height:16px;border:1.5px solid var(--muted);border-radius:4px;margin-top:5px}
+
+footer{max-width:1120px;margin:24px auto 0;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:20px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<header class="hero">
+  <div class="kicker">ข้อเสนอสถาปัตยกรรม · ฉบับ 16 ต.ค. 2026</div>
+  <h1>ระบบตู้คีออสก์ร้านกาแฟ หลายสาขา หลายกิจการ</h1>
+  <p class="lede">ตู้สั่งเครื่องดื่มแบบจอสัมผัสที่จำลูกค้าประจำจากใบหน้าได้ โดยภาพใบหน้าไม่ออกจากตู้ และคลาวด์เก็บเฉพาะ embedding (เวกเตอร์ตัวเลข) ภายในประเทศไทย</p>
+  <div class="meta"><span>ผู้จัดทำ: นายปัณณธร ขันละ (B6610364)</span><span>อ้างอิง: สเปกสถาปัตยกรรมฉบับปรับล่าสุด 16 ต.ค. 2026</span></div>
+  <div class="facts">
+    <div class="fact"><b>1 กิจการ · 10 สาขา</b><span>ขนาดเริ่มต้น ขยายเป็นหลายกิจการ</span></div>
+    <div class="fact"><b>3 ส่วนหลัก</b><span>ตู้ · Cloud backend · เว็บร้าน</span></div>
+    <div class="fact"><b>PromptPay QR</b><span>ที่ตู้ · เงินสดและ PromptPay ที่ POS</span></div>
+    <div class="fact"><b>4 เฟส</b><span>แต่ละเฟสจบเมื่อผ่านเกณฑ์</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+<nav class="toc" aria-label="สารบัญ">
+  <p>สารบัญ</p>
+  <ol>
+    <li><a href="#overview">ภาพรวมและเป้าหมาย</a></li>
+    <li><a href="#decisions">สิ่งที่ตกลงแล้ว</a></li>
+    <li><a href="#architecture">สถาปัตยกรรม</a></li>
+    <li><a href="#edge">ตู้คีออสก์</a></li>
+    <li><a href="#face">ระบบจดจำใบหน้า</a></li>
+    <li><a href="#backend">Cloud backend และ VPS</a></li>
+    <li><a href="#web">เว็บร้านและ POS</a></li>
+    <li><a href="#payment">การชำระเงิน PromptPay</a></li>
+    <li><a href="#queue">บัตรคิวดิจิทัล</a></li>
+    <li><a href="#voice">สั่งด้วยเสียง (Gemini Live)</a></li>
+    <li><a href="#loyalty">ทักทาย สั่งซ้ำ สะสมแต้ม</a></li>
+    <li><a href="#data">ข้อมูลและการเข้ารหัส</a></li>
+    <li><a href="#pdpa">ความปลอดภัยและ PDPA</a></li>
+    <li><a href="#ops">การดำเนินงาน</a></li>
+    <li><a href="#risk">ไลเซนส์และความเสี่ยง</a></li>
+    <li><a href="#plan">แผน 4 เฟส</a></li>
+    <li><a href="#asks">สิ่งที่ต้องตัดสินใจ</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="overview">
+  <div class="kicker">ภาพรวม</div>
+  <h2>ระบบนี้ทำอะไร และให้ใครใช้</h2>
+  <p>ร้านกาแฟหลายกิจการและหลายสาขาใช้ตู้สั่งเครื่องดื่มแบบจอสัมผัสร่วมกันบนแพลตฟอร์มเดียว ตู้จำลูกค้าประจำจากใบหน้าเพื่อทักทาย เสนอเมนูสั่งซ้ำ และสะสมแต้ม ส่วนพนักงานรับออเดอร์หน้าร้านผ่าน POS บนแท็บเล็ต ออเดอร์จากทั้งสองทางเข้าคิวเดียวกันของสาขา</p>
+  <p>ผู้ใช้ระบบมี 4 กลุ่ม ได้แก่ ลูกค้าหน้าตู้ พนักงานและผู้จัดการสาขา เจ้าของกิจการ และทีมแพลตฟอร์มซึ่งเป็นผู้ให้บริการ</p>
+  <h3>เป้าหมายหลัก</h3>
+  <ul>
+    <li>ตู้ออนไลน์ตลอดเวลาและทำออเดอร์กับ backend โดยตรง</li>
+    <li>ข้อมูลของแต่ละกิจการแยกจากกันเด็ดขาด</li>
+    <li>การจดจำใบหน้าเป็นความสะดวก ต้องไม่ขวางการขาย</li>
+    <li>เป็นไปตาม PDPA เพราะใบหน้าเป็นข้อมูลชีวมิติ</li>
+  </ul>
+</section>
+
+<section id="decisions">
+  <div class="kicker">ขอบเขต</div>
+  <h2>สิ่งที่ตกลงแล้ว</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>หัวข้อ</th><th>ข้อสรุป</th><th>เหตุผลหลัก</th></tr></thead>
+    <tbody>
+      <tr><td>โครงสร้างระบบ</td><td>3 ส่วน: ตู้ (Edge), Cloud backend, เว็บสำหรับร้าน</td><td>แยกหน้าที่ชัดเจน</td></tr>
+      <tr><td>UI ของตู้</td><td>เว็บแอปใน Microsoft Edge โหมดคีออสก์ ทำงานร่วมกับ local agent ในเครื่อง</td><td>ใช้โค้ดร่วมกับเว็บร้าน และอัปเดตจากเซิร์ฟเวอร์ครั้งเดียว</td></tr>
+      <tr><td>การทำงานออฟไลน์</td><td>ตู้ไม่รับออเดอร์ตอนออฟไลน์ แสดงหน้าสำรองแทน ส่วน POS ขายเงินสดต่อได้</td><td>ออเดอร์จากตู้ต้องคุยกับ backend แต่การขายเงินสดไม่ควรหยุดเพราะเน็ตหรือ VPS ล่ม</td></tr>
+      <tr><td>การจับคู่ใบหน้า</td><td>ตู้สร้าง embedding แล้วส่งไปค้นหาในคลาวด์ภายใน tenant เดียว</td><td>จำข้ามสาขาได้ และเก็บข้อมูลชีวมิติที่เดียว</td></tr>
+      <tr><td>โมเดล embedding</td><td>ทดสอบ AuraFace เทียบกับ SFace บน N100 จริง แล้วเลือกตัวเดียว</td><td>ทั้งคู่ใช้เชิงพาณิชย์ได้ แต่ความแม่นยำและความเร็วต่างกัน</td></tr>
+      <tr><td>การแยกกิจการ</td><td>ฐานข้อมูลร่วม + tenant_id + row-level security และคีย์เข้ารหัส embedding แยกต่อ tenant</td><td>แยกข้อมูลทั้งทางเทคนิคและตามกฎหมาย</td></tr>
+      <tr><td>ที่ตั้งข้อมูลและโฮสต์</td><td>VPS ขององค์กรในประเทศไทย (ยืนยันที่ตั้งแล้ว) ข้อยกเว้นเดียวคือเสียงสั่งออเดอร์ที่ส่งไป Gemini Live ในสิงคโปร์</td><td>ใบหน้าและข้อมูลลูกค้าไม่เข้าเงื่อนไขส่งข้อมูลข้ามแดนตาม PDPA</td></tr>
+      <tr><td>รูปแบบ backend</td><td>modular monolith + Postgres</td><td>ยังไม่จำเป็นต้องแยกเป็น microservice</td></tr>
+      <tr><td>การจดจำข้ามสาขา</td><td>ทำได้ภายในกิจการเดียวกัน ความยินยอมต้องครอบคลุมทุกสาขา</td><td>ลูกค้าได้ประสบการณ์เดียวกันทุกสาขา</td></tr>
+      <tr><td>การใช้ใบหน้า</td><td>ทักทายด้วยชื่อเล่นที่ลูกค้าเลือก สั่งซ้ำ และสะสมแต้ม</td><td>ตัวตนสำรองคือเบอร์โทรและ QR สมาชิก</td></tr>
+      <tr><td>การชำระเงิน</td><td>ตู้: PromptPay QR ผ่านเกตเวย์อย่างเดียวในเฟสนี้ · POS: เงินสดและ PromptPay</td><td>ไม่ต้องต่อเครื่องรูดบัตรหรือเครื่องพิมพ์</td></tr>
+      <tr><td>คิว</td><td>บัตรคิวดิจิทัล ไม่พิมพ์บัตร</td><td>ลดอุปกรณ์ที่ต้องดูแลหน้าร้าน</td></tr>
+      <tr><td>เสียง</td><td>สั่งและตอบกลับด้วยเสียงแบบ speech-to-speech ผ่าน Google Gemini Live (Vertex AI สิงคโปร์) โดยลูกค้ากดยินยอมก่อนใช้</td><td>มีเดโมเสียงได้เร็วในเฟส 1 และเป็นตัวช่วยของจอสัมผัส ไม่ใช่ช่องทางเดียว</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="architecture">
+  <div class="kicker">สถาปัตยกรรม</div>
+  <h2>สามส่วนหลัก คุยกันผ่าน backend เท่านั้น</h2>
+  <p>ตู้และเว็บร้านคุยกับ Cloud backend เท่านั้น ไม่คุยกันตรง ภาพใบหน้าไม่ออกจากตู้ และคลาวด์เก็บเฉพาะ embedding ที่เข้ารหัสแล้ว</p>
+  <div class="diagram" role="img" aria-label="แผนภาพสถาปัตยกรรม: ตู้คีออสก์และเว็บร้านเชื่อมต่อกับ Cloud backend ผ่าน HTTPS เกตเวย์ PromptPay ส่ง webhook มาที่ backend และตู้ส่งเฉพาะเสียงไป Gemini Live ในสิงคโปร์">
+    <svg viewBox="0 0 960 440" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="d-head"/></marker>
+      </defs>
+      <!-- Edge -->
+      <rect x="20" y="20" width="240" height="320" rx="10" class="d-zone"/>
+      <text x="40" y="50" class="d-h">ตู้คีออสก์ (Edge)</text>
+      <text x="40" y="70" class="d-s">Intel N100 · Windows 11 Pro · ทุกสาขา</text>
+      <rect x="40" y="90" width="200" height="60" rx="6" class="d-box"/>
+      <text x="54" y="115" class="d-t">UI: Edge โหมดคีออสก์</text>
+      <text x="54" y="135" class="d-s">โหลดจากเซิร์ฟเวอร์</text>
+      <rect x="40" y="165" width="200" height="60" rx="6" class="d-box"/>
+      <text x="54" y="190" class="d-t">Local agent</text>
+      <text x="54" y="210" class="d-s">กล้อง ไมค์ ลำโพง โทเคนตู้</text>
+      <rect x="40" y="240" width="200" height="80" rx="6" class="d-key"/>
+      <text x="54" y="265" class="d-t">Face service</text>
+      <text x="54" y="285" class="d-s">YuNet → quality gate</text>
+      <text x="54" y="303" class="d-s">→ embedding เท่านั้น</text>
+      <rect x="40" y="380" width="200" height="44" rx="6" class="d-box"/>
+      <text x="140" y="401" text-anchor="middle" class="d-t">Gemini Live (สิงคโปร์)</text>
+      <text x="140" y="417" text-anchor="middle" class="d-s">หลังลูกค้ากดยินยอม</text>
+      <line x1="140" y1="343" x2="140" y2="378" class="d-a" marker-start="url(#ah)" marker-end="url(#ah)"/>
+      <text x="150" y="366" class="d-s">เสียงเท่านั้น</text>
+      <!-- Backend -->
+      <rect x="360" y="20" width="240" height="320" rx="10" class="d-zone"/>
+      <text x="380" y="50" class="d-h">Cloud backend</text>
+      <text x="380" y="70" class="d-s">VPS ขององค์กรในประเทศไทย</text>
+      <rect x="380" y="90" width="200" height="88" rx="6" class="d-box"/>
+      <text x="394" y="114" class="d-t">Modular monolith</text>
+      <text x="394" y="134" class="d-s">Store services · Face identity</text>
+      <text x="394" y="152" class="d-s">Admin · Device management</text>
+      <text x="394" y="170" class="d-s">Payment adapter</text>
+      <rect x="380" y="192" width="200" height="60" rx="6" class="d-key"/>
+      <text x="394" y="217" class="d-t">Postgres + RLS</text>
+      <text x="394" y="237" class="d-s">+ replica (warm standby)</text>
+      <rect x="380" y="266" width="200" height="60" rx="6" class="d-box"/>
+      <text x="394" y="291" class="d-t">Vault / OpenBao</text>
+      <text x="394" y="311" class="d-s">เครื่องแยก · คีย์ต่อ tenant</text>
+      <!-- Web -->
+      <rect x="700" y="20" width="240" height="320" rx="10" class="d-zone"/>
+      <text x="720" y="50" class="d-h">เว็บสำหรับร้าน</text>
+      <text x="720" y="70" class="d-s">เว็บเดียว สิทธิ์ตามบทบาท</text>
+      <rect x="720" y="90" width="200" height="60" rx="6" class="d-box"/>
+      <text x="734" y="115" class="d-t">POS (PWA บนแท็บเล็ต)</text>
+      <text x="734" y="135" class="d-s">ขายเงินสดได้ตอนออฟไลน์</text>
+      <rect x="720" y="165" width="200" height="60" rx="6" class="d-box"/>
+      <text x="734" y="190" class="d-t">หลังร้านและรายงาน</text>
+      <text x="734" y="210" class="d-s">ผู้จัดการ · เจ้าของ · แพลตฟอร์ม</text>
+      <rect x="720" y="240" width="200" height="60" rx="6" class="d-box"/>
+      <text x="734" y="265" class="d-t">จอบอร์ดคิว</text>
+      <text x="734" y="285" class="d-s">แสดงหมายเลขคิวเท่านั้น</text>
+      <!-- arrows -->
+      <line x1="262" y1="180" x2="358" y2="180" class="d-a" marker-start="url(#ah)" marker-end="url(#ah)"/>
+      <text x="310" y="166" text-anchor="middle" class="d-s">HTTPS</text>
+      <text x="310" y="200" text-anchor="middle" class="d-s">เวกเตอร์ · ออเดอร์</text>
+      <line x1="602" y1="180" x2="698" y2="180" class="d-a" marker-start="url(#ah)" marker-end="url(#ah)"/>
+      <text x="650" y="166" text-anchor="middle" class="d-s">HTTPS</text>
+      <text x="650" y="200" text-anchor="middle" class="d-s">SSE / WebSocket</text>
+      <rect x="380" y="380" width="200" height="44" rx="6" class="d-box"/>
+      <text x="480" y="407" text-anchor="middle" class="d-t">เกตเวย์ PromptPay</text>
+      <line x1="480" y1="378" x2="480" y2="343" class="d-a" marker-end="url(#ah)"/>
+      <text x="490" y="366" class="d-s">webhook ยืนยันการชำระ</text>
+    </svg>
+  </div>
+  <p class="note">ตู้รับคำสั่งจากส่วนกลาง (เช่น เปลี่ยน threshold หรือปิดตู้) ด้วยการ polling ส่วนสถานะคิวที่ต้องอัปเดตทันทีใช้ SSE หรือ WebSocket</p>
+</section>
+
+<section id="edge">
+  <div class="kicker">Edge</div>
+  <h2>ตู้คีออสก์</h2>
+  <p>ตู้ทำหน้าที่แสดงหน้าจอ จับภาพ และสร้าง embedding เท่านั้น การตัดสินใจทางธุรกิจทั้งหมดอยู่ที่ backend</p>
+  <ul>
+    <li><b>ฮาร์ดแวร์:</b> มินิพีซี Intel N100 (4 คอร์) RAM 7.8 GB SSD 128 GB Windows 11 Pro กล้อง USB และจอสัมผัส ตามที่ตรวจเครื่องจริงแล้ว</li>
+    <li><b>UI:</b> เว็บแอปเปิดใน Microsoft Edge โหมดคีออสก์ ล็อกเครื่องด้วย Windows Assigned Access โหลดจากเซิร์ฟเวอร์ ปล่อยเวอร์ชันครั้งเดียวถึงทุกสาขา เลือก Edge เพราะ Assigned Access บน Windows 11 Pro ล็อกแบบแอปเดียวได้กับ Edge ส่วน Chromium ทั่วไปมักต้องใช้ Shell Launcher ซึ่งมีเฉพาะรุ่น Enterprise/Education <span class="chip c-check">ทดสอบในเฟส 1</span></li>
+    <li><b>Local agent:</b> บริการในเครื่องที่เป็นเจ้าของกล้อง ไมโครโฟน ลำโพง ถือโทเคนประจำตู้ และคุมอุปกรณ์ต่อพ่วง UI เรียกผ่าน localhost โดย agent ตรวจ Origin ทุกคำขอและใช้ secret ที่ผูกกับหน้า UI เพื่อไม่ให้หน้าเว็บอื่นในเครื่องเรียกได้ และต้องทดสอบกฎ Private Network Access ของเบราว์เซอร์</li>
+    <li><b>Face service:</b> ตรวจจับ จัดตำแหน่ง ตรวจคุณภาพ และสร้าง embedding แล้วส่งเฉพาะเวกเตอร์ขึ้น backend ภาพใบหน้าอยู่ในหน่วยความจำเท่านั้น ไม่เขียนลงดิสก์</li>
+    <li><b>หน้าจอสำรอง:</b> local agent เสิร์ฟหน้าสำรองจากในเครื่อง และ watchdog สลับไปหน้านี้เมื่อโหลด UI จากเซิร์ฟเวอร์ไม่ได้หรือ heartbeat ล้มเหลว หน้านี้ให้ลูกค้าติดต่อพนักงาน และปิดการสั่งซื้อจนกว่าจะกลับมาออนไลน์</li>
+    <li><b>ความเสถียร:</b> watchdog เปิดแอปใหม่เมื่อค้าง รีโหลดหน้าวันละครั้งตอนร้านปิด และปิดคีย์ลัดของ Windows</li>
+  </ul>
+  <p>ตู้รับชำระผ่าน PromptPay QR อย่างเดียว ใบเสร็จและบัตรคิวเป็นแบบดิจิทัล จึงไม่ต้องต่อเครื่องรูดบัตรหรือเครื่องพิมพ์ ถ้าอนาคตต้องต่ออุปกรณ์ที่มีแต่ SDK สำหรับ Windows ให้ครอบ UI เดิมด้วย WebView2 โดยไม่ต้องเขียน UI ใหม่</p>
+</section>
+
+<section id="face">
+  <div class="kicker">Face recognition</div>
+  <h2>ระบบจดจำใบหน้า</h2>
+  <p>ทั้งสองโมเดลใช้ pipeline เดียวกัน ต่างกันเฉพาะขั้นสร้าง embedding เพื่อให้เปรียบเทียบได้ยุติธรรม แล้วเลือกจากผลทดสอบบนเครื่อง N100 จริง</p>
+  <h3>ขั้นตอนบนตู้</h3>
+  <ol class="steps">
+    <li><span>ตรวจเจอใบหน้าที่ใหญ่พอจึงเริ่มประมวลผล YuNet ตรวจจับและจัดตำแหน่งใบหน้า</span></li>
+    <li><span>Quality gate ตรวจความเบลอ ขนาด และมุมหน้า</span></li>
+    <li><span>สร้าง embedding ผ่าน interface เดียว <code>embed(aligned_face) -&gt; vector</code> สลับโมเดลด้วยไฟล์ config</span></li>
+    <li><span>ถ่ายหลายเฟรมแล้วเฉลี่ย embedding ยอมรับว่าเป็นคนเดิมเมื่อคะแนนเกิน threshold ติดกัน 2 ครั้ง และคะแนนอันดับ 1 ต้องห่างจากอันดับ 2 เกินระยะที่กำหนด ถ้าใกล้กันให้ถือว่าจำไม่ได้</span></li>
+    <li><span>ส่งเฉพาะ embedding ไป backend ค้นหาภายใน tenant เดียว ถ้าช้าเกินราว 1.5 วินาทีให้ข้ามไปสั่งตามปกติ</span></li>
+  </ol>
+  <h3>โมเดลที่จะเปรียบเทียบ</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>เกณฑ์</th><th>AuraFace</th><th>SFace</th></tr></thead>
+    <tbody>
+      <tr><td>สถาปัตยกรรม</td><td>ResNet100 แบบ ArcFace</td><td>โมเดลขนาดเล็ก ชุด YuNet + SFace รวมราว 40 MB</td></tr>
+      <tr><td>มิติของ embedding</td><td class="num">512</td><td class="num">128</td></tr>
+      <tr><td>ไลเซนส์</td><td>Apache 2.0</td><td>Apache 2.0 ตามเอกสาร LocalAI <span class="chip c-check">ตรวจที่ต้นทาง OpenCV</span></td></tr>
+      <tr><td>ความแม่นยำที่ผู้พัฒนารายงาน</td><td class="num">LFW 99.65% · CFP-FP 95.19% · AgeDB 96.10% · CALFW 94.70% · CPLFW 90.93%</td><td>ยังไม่ได้ตรวจ ให้วัดเอง</td></tr>
+      <tr><td>ความเร็วบน N100</td><td>ยังไม่ได้วัด (ประมาณ 100–300 ms ต่อใบหน้า)</td><td>ยังไม่ได้วัด คาดว่าเร็วกว่า</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">ตัวเลขของ AuraFace ต่ำกว่า ArcFace R100 ที่เทรนด้วย MS1MV2 (LFW 99.77%, CFP-FP 98.27%, AgeDB-30 98.15% จากงานวิจัยอื่น วิธีวัดต่างกัน) ช่องว่างใหญ่สุดอยู่ที่หน้าเอียง</p>
+  <h3>แผนทดสอบ</h3>
+  <ul>
+    <li>ผู้ทดสอบอย่างน้อย 50 คน อย่างน้อย 3 เงื่อนไข เช่น หน้าตรง หน้าเอียง และแสงต่างกัน</li>
+    <li>วัด FAR, FRR, EER เวลาต่อใบหน้า (เฉลี่ยและ p95) และ RAM ที่ใช้บน N100</li>
+    <li>เกณฑ์เลือก: ถ้า AuraFace ช้ากว่า 0.5 วินาทีต่อใบหน้า หรือแม่นกว่า SFace ไม่ชัด ให้เลือก SFace</li>
+    <li>จูน threshold แยกต่อโมเดล และปรับตามขนาดฐานข้อมูล เพราะโอกาสจำผิดคนเพิ่มตามจำนวนคน</li>
+    <li>embedding ทุกตัวเก็บ <code>model_id</code> และจำนวนมิติไว้ด้วย เพราะเทียบข้ามโมเดลกันไม่ได้</li>
+  </ul>
+</section>
+
+<section id="backend">
+  <div class="kicker">Cloud</div>
+  <h2>Cloud backend และโครงสร้างบน VPS</h2>
+  <p>Backend เป็นที่เดียวที่มี logic ธุรกิจ การแยก tenant และการกำหนดสิทธิ์ผู้ใช้ เริ่มด้วย modular monolith + Postgres</p>
+  <ul>
+    <li><b>โมดูล:</b> Store services (เมนู ออเดอร์ สต็อก สมาชิกและแต้ม) · Face identity (จับคู่ใบหน้าและความยินยอม) · Admin (เครื่องมือ tenant และแพลตฟอร์ม) · Device management (ลงทะเบียนและตั้งค่าตู้)</li>
+    <li><b>API:</b> ชุดเดียวสำหรับตู้และเว็บ ยืนยันตัวตนสองแบบ คือโทเคนประจำตู้ และบัญชีผู้ใช้ที่มีบทบาทภายใน tenant</li>
+    <li><b>การแยก tenant:</b> ทุกแถวมี tenant_id พร้อม row-level security ลูกค้าคนเดียวกันที่ใช้สองกิจการเป็นสองเรคอร์ดที่ไม่เชื่อมกัน แอปเชื่อมต่อด้วย role ที่ไม่ใช่เจ้าของตาราง เปิด <code>FORCE ROW LEVEL SECURITY</code> ตั้ง tenant ด้วย <code>SET LOCAL</code> ในแต่ละ transaction และ tenant ของตู้หาจากโทเคนฝั่ง server เท่านั้น</li>
+    <li><b>ดัชนี embedding:</b> เก็บแบบเข้ารหัสใน Postgres แล้ว backend ถอดรหัสและโหลดเข้าหน่วยความจำแยกตาม tenant ค้นหาแบบ brute-force (ลูกค้า 10,000 คน × 512 มิติ ใช้ราว 20 MB) ไม่ใช้ pgvector ในช่วงแรก เพราะ pgvector ต้องเห็นเวกเตอร์ที่ไม่เข้ารหัส ซึ่งขัดกับการเข้ารหัสต่อ tenant</li>
+  </ul>
+  <h3>โครงสร้างพื้นฐานบน VPS</h3>
+  <p>VPS ขององค์กรรองรับช่วงแรกได้ด้วยการติดตั้งแบบเรียบง่าย แต่ต้องดูแลความพร้อมใช้งานและความปลอดภัยเองทั้งหมด</p>
+  <ul>
+    <li><b>รูปแบบ:</b> modular monolith และ Postgres บนเครื่องเดียวหรือสองเครื่อง รันด้วย container มี reverse proxy ทำ TLS</li>
+    <li><b>สำรองข้อมูล:</b> สำรอง Postgres อัตโนมัติ ทดสอบกู้คืนเป็นประจำ เก็บสำเนาแยกเครื่อง และเข้ารหัสไฟล์สำรอง</li>
+    <li><b>คีย์เข้ารหัส:</b> คีย์หลักอยู่ใน Vault หรือ OpenBao บนเครื่องแยกจากฐานข้อมูล มีขั้นตอน unseal ใน runbook และผู้รับผิดชอบ ระหว่างที่ยังไม่ unseal การจดจำใบหน้าใช้ไม่ได้ แต่การสั่งซื้อต้องยังทำได้</li>
+    <li><b>เฝ้าระวังและความปลอดภัย:</b> ตรวจสถานะ VPS ฐานข้อมูล และ heartbeat ของตู้พร้อมแจ้งเตือน ไฟร์วอลล์ จำกัด SSH ปรับแพตช์ และไม่เปิดฐานข้อมูลสู่สาธารณะ</li>
+    <li><b>ทางขยาย:</b> เมื่อมีหลายกิจการ ค่อยแยกฐานข้อมูล ดัชนี embedding หรือเพิ่มเครื่อง การออกแบบ tenant_id + RLS ทำให้ย้ายได้ภายหลัง</li>
+  </ul>
+  <div class="callout warn">
+    <p><b>ความพร้อมใช้งาน:</b> ช่วงแรกตู้ทุกตัวพึ่ง VPS จุดเดียว ถ้า VPS ล่ม ตู้ทั้ง 10 สาขาสั่งซื้อไม่ได้ แผนรับมือคือ กำหนด RTO 1 ชั่วโมงและ RPO 5 นาที <span class="chip c-prop">ข้อเสนอ</span> มี Postgres replica แบบ streaming บนอีกเครื่องพร้อมขั้นตอนสลับที่ซ้อมแล้ว และให้ POS ขายเงินสดต่อได้ระหว่างที่ backend ล่ม</p>
+  </div>
+</section>
+
+<section id="web">
+  <div class="kicker">หน้าร้าน</div>
+  <h2>เว็บสำหรับร้านและ POS</h2>
+  <p>เว็บเดียวรองรับทุกบทบาท โดย backend เป็นผู้กำหนดสิทธิ์ ไม่ใช่การซ่อนปุ่มที่หน้าเว็บ ตารางนี้คือสิทธิ์เริ่มต้นที่เสนอ ปรับได้ตามที่เจ้าของกิจการต้องการ</p>
+  <div class="tbl"><table>
+    <thead><tr><th>บทบาท</th><th>ทำอะไรได้</th></tr></thead>
+    <tbody>
+      <tr><td>พนักงานสาขา</td><td>ดูออเดอร์ของสาขา รับออเดอร์ผ่าน POS และเปลี่ยนสถานะคิว</td></tr>
+      <tr><td>ผู้จัดการสาขา</td><td>จัดการเมนูของสาขา ดูรายงานและสถานะตู้ของสาขา อนุมัติการยกเลิกหรือคืนเงิน</td></tr>
+      <tr><td>เจ้าของกิจการ</td><td>เมนูและราคาทุกสาขา รายงานรวม จัดการผู้ใช้และตู้ แก้ข้อความขอความยินยอม และลบข้อมูลลูกค้าตามคำขอ</td></tr>
+      <tr><td>ทีมแพลตฟอร์ม</td><td>เปิด tenant ใหม่ ดูสถานะตู้ข้ามกิจการ ไม่มีสิทธิ์เข้าถึงข้อมูลลูกค้าและข้อมูลชีวมิติตามปกติ การเข้าถึงเพื่อแก้ปัญหาต้องขออนุมัติและบันทึก audit ทุกครั้ง</td></tr>
+    </tbody>
+  </table></div>
+  <p>POS ทำเป็น PWA ใช้บนแท็บเล็ต เรียก API ชุดเดียวกับตู้ และรับทั้งเงินสดและ PromptPay จึงต้องมีกติกาเงินสด เช่น เปิดและปิดกะ นับเงินสด และให้ผู้จัดการอนุมัติการยกเลิกหรือคืนเงิน</p>
+  <div class="callout">
+    <p><b>POS ออฟไลน์:</b> เมื่อ backend หรือเน็ตร้านล่ม POS ยังรับออเดอร์เงินสดได้ โดยพักออเดอร์ไว้ในเครื่อง ใช้หมายเลขคิวช่วงสำรองของเครื่องนั้น แล้ว sync ขึ้น backend ด้วย idempotency key เมื่อกลับมาออนไลน์ ระหว่างนั้น PromptPay และตู้ปิดตามเดิม และไม่ใช้การจดจำใบหน้าหรือแต้ม</p>
+  </div>
+</section>
+
+<section id="payment">
+  <div class="kicker">การชำระเงิน</div>
+  <h2>เกตเวย์ PromptPay</h2>
+  <p>เสนอให้ขอใบเสนอราคาจาก Beam และ Opn Payments ก่อน เพราะเป็นสองเจ้าที่มีข้อมูลชัดที่สุด แล้วเลือกจากใบเสนอราคาจริง ตัวเลขด้านล่างมาจากหน้าของผู้ให้บริการและข่าว ยังไม่ใช่ราคาที่ยืนยันกับองค์กร</p>
+  <div class="tbl"><table>
+    <thead><tr><th>เกตเวย์</th><th>ค่าธรรมเนียมที่พบ</th><th>ข้อควรรู้</th><th>ต่อยอดขาย 100,000 บาท</th></tr></thead>
+    <tbody>
+      <tr><td><a href="https://www.thestorythailand.com/en/29/09/2025/163476/" target="_blank" rel="noopener">Beam</a></td><td>QR PromptPay ฟรีตามข้อความเปิดตัวเครื่อง Bolt+ ยังไม่พบเงื่อนไขของ API สำหรับร้านที่ทำระบบเอง</td><td>ต้องยื่นเอกสารบริษัท รายชื่อผู้ถือหุ้น และสำเนาบัตรผู้ถือหุ้นเกิน 25% (<a href="https://zortout.com/en?p=47352" target="_blank" rel="noopener">ZORT</a>)</td><td class="num">0 บาท · ต้องยืนยัน</td></tr>
+      <tr><td><a href="https://www.omise.co/pricing/thailand" target="_blank" rel="noopener">Opn Payments (Omise)</a></td><td>1.65% ต่อรายการ ยังไม่รวม VAT 7%</td><td>สร้าง QR ผ่าน API ต้องอีเมลขอเปิดใช้ และ QR หมดอายุเริ่มต้น 24 ชั่วโมงซึ่งต้องขอเปลี่ยน (<a href="https://docs.opn.ooo/promptpay" target="_blank" rel="noopener">เอกสาร</a>)</td><td class="num">1,650 บาท ก่อน VAT</td></tr>
+      <tr><td>GB Prime Pay, KBank K-Payment Gateway, 2C2P</td><td>ไม่พบอัตรา PromptPay ที่ตรวจได้ (2C2P ต่อรองอัตราได้)</td><td>ต้องขอใบเสนอราคา</td><td class="num">ไม่ทราบ</td></tr>
+      <tr><td><a href="https://www.adyen.com/payment-methods/promptpay" target="_blank" rel="noopener">Adyen</a></td><td>3.75% บวกค่าคงที่ต่อรายการ</td><td>เน้นธุรกิจข้ามประเทศ</td><td class="num">ราว 3,750 บาท + ค่าคงที่</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><b>ก่อนเลือกให้ตรวจ:</b> webhook ยืนยันการชำระเงิน เวลาหมดอายุของ QR ที่ตั้งให้สั้นเป็นหลักนาทีได้ การคืนเงินและยกเลิก (บางเกตเวย์ไม่รองรับคืนเงิน PromptPay) รอบโอนเงินเข้าบัญชี และค่าโอนออก</li>
+    <li><b>ความถูกต้องของออเดอร์:</b> ใช้ idempotency key กันตัดเงินซ้ำ ยืนยันด้วย webhook และ poll สถานะจากเกตเวย์เป็นทางสำรอง ออเดอร์มีสถานะชัดเจน (รอชำระ ชำระแล้ว หมดอายุ ล้มเหลว)</li>
+    <li><b>จ่ายแล้วแต่ตู้หลุด:</b> ลูกค้ายังเห็นคิวจากหน้าสถานะผ่าน QR และพนักงานค้นออเดอร์จาก POS ได้</li>
+    <li><b>เงินเข้าบัญชีใคร:</b> เข้าบัญชีกิจการโดยตรงหรือผ่านแพลตฟอร์มมีผลทางกฎหมายและภาษี ข้อเสนอเบื้องต้นคือบัญชีเกตเวย์แยกต่อกิจการ และใส่ชั้น payment adapter เพื่อเปลี่ยนเกตเวย์ได้</li>
+  </ul>
+</section>
+
+<section id="queue">
+  <div class="kicker">หน้าร้าน</div>
+  <h2>บัตรคิวดิจิทัล</h2>
+  <p>บัตรคิวออกให้อัตโนมัติเมื่อชำระเงินสำเร็จ แสดงบนจอตู้ จอบอร์ดในร้าน และหน้าเว็บบนมือถือของลูกค้า โดยไม่พิมพ์บัตร <span class="chip c-prop">ข้อเสนอ ยังไม่ได้สอบกับทีมร้าน</span></p>
+  <ul>
+    <li><b>การออกคิว:</b> backend ออกหมายเลขคิวต่อสาขาเมื่อได้ webhook ยืนยันการชำระ รีเซ็ตทุกวัน ออเดอร์จากตู้และ POS เข้าคิวเดียวกัน</li>
+    <li><b>ฝั่งลูกค้า:</b> ตู้แสดงหมายเลขคิวพร้อม QR ที่เปิดหน้าสถานะบนมือถือ ลิงก์เดาไม่ได้ ไม่ต้องล็อกอิน แสดงเฉพาะหมายเลขคิวกับสถานะ</li>
+    <li><b>ฝั่งร้าน:</b> พนักงานเปลี่ยนสถานะ (รับออเดอร์ กำลังทำ พร้อมรับ) จากเว็บร้านบนจอ POS หรือจอฝั่งทำเครื่องดื่ม</li>
+    <li><b>จอบอร์ดและการเรียกคิว:</b> เว็บเพจเต็มจอแสดงคิวที่กำลังทำและพร้อมรับ เรียกคิวด้วยคลิปเสียงที่สร้างไว้ล่วงหน้า อัปเดตทันทีผ่าน SSE หรือ WebSocket</li>
+    <li><b>ความเป็นส่วนตัว:</b> จอสาธารณะใช้หมายเลขคิวเท่านั้น ไม่แสดงชื่อหรือประวัติการสั่ง</li>
+  </ul>
+</section>
+
+<section id="voice">
+  <div class="kicker">เสียง</div>
+  <h2>สั่งและตอบกลับด้วยเสียง</h2>
+  <p>เสียงเป็นตัวช่วยของจอสัมผัส ไม่ใช่ช่องทางเดียว ลูกค้ากดปุ่มเพื่อเริ่มพูด (push-to-talk) แทนการฟังตลอดเวลา เพราะร้านกาแฟมีเสียงรบกวน และการฟังตลอดเวลาเพิ่มภาระด้านความเป็นส่วนตัว</p>
+  <ol class="steps">
+    <li><span>ลูกค้ากดปุ่มพูด ไมโครโฟนบันทึกเสียงสั้นๆ และตัดช่วงเงียบอัตโนมัติ</span></li>
+    <li><span>ถอดเสียงเป็นข้อความด้วยโมเดลภาษาไทย</span></li>
+    <li><span>ตีความเป็นคำสั่งซื้อ จับคู่กับเมนูและตัวเลือกของ tenant แล้วให้ backend เพิ่มลงตะกร้า</span></li>
+    <li><span>พูดตอบทุกครั้ง พร้อมแสดงข้อความบนจอเพื่อให้ลูกค้าตรวจออเดอร์ได้</span></li>
+    <li><span>ยืนยันออเดอร์และจ่ายเงินด้วยการกดบนจอเสมอ</span></li>
+  </ol>
+
+  <h3>เฟส 1: เดโมเสียงด้วย Gemini Live</h3>
+  <p>เฟส 1 ใช้ Google Gemini Live API ทำ speech-to-speech เพื่อให้มีเดโมสั่งด้วยเสียงได้เร็ว โดยไม่ต้องดูแลโมเดลถอดเสียงและพูดตอบเอง Live API รองรับภาษาไทย (th-TH) รับเสียง PCM 16 kHz และตอบเป็นเสียง PCM 24 kHz ผ่าน WebSocket เงื่อนไขด้านล่างออกแบบให้ใช้ได้ทั้งเดโมและการใช้งานจริง โดยใช้กับลูกค้าจริงได้เมื่อผู้เชี่ยวชาญ PDPA ยืนยันแล้ว</p>
+  <ul>
+    <li><b>การเชื่อมต่อ:</b> UI บนตู้เปิดเซสชัน Live กับ Gemini โดยตรงด้วยโทเคนชั่วคราวที่เซิร์ฟเวอร์ออกให้ ไม่เก็บ API key ไว้ในตู้ เลือกรุ่น native audio ล่าสุดตอนเริ่มทำ</li>
+    <li><b>การสั่งออเดอร์:</b> Gemini ไม่แก้ตะกร้าเอง แต่เรียกฟังก์ชัน (function calling) ของเซิร์ฟเวอร์ เช่น เพิ่มรายการ ลบรายการ ดูตะกร้า และขอยืนยัน เซิร์ฟเวอร์ตรวจกับเมนูจริงแล้วส่งผลกลับให้ Gemini พูดตอบ จอแสดงตะกร้าตามจริงเสมอ</li>
+    <li><b>ระบบสั่งออเดอร์แบบง่าย:</b> เซิร์ฟเวอร์เดโมตัวเดียว 1 สาขา เมนูจากไฟล์ JSON มีตะกร้า ออเดอร์ และหมายเลขคิว ยังไม่ใช้ tenant, row-level security หรือ PromptPay จริง ออกแบบ API ให้ใกล้ของเฟส 2 เพื่อให้ UI ตู้ใช้ต่อได้</li>
+    <li><b>ข้อจำกัด:</b> เซสชันเสียงยาวได้ราว 15 นาที (ปิดเซสชันเมื่อจบออเดอร์อยู่แล้ว) ราคาต่อนาทีและ rate limit ต้องตรวจก่อนเดโม</li>
+  </ul>
+  <div class="callout">
+    <p><b>หน้ายินยอมก่อนสั่งด้วยเสียง:</b> เมื่อลูกค้ากดปุ่มสั่งด้วยเสียงครั้งแรกในเซสชัน ตู้แจ้งสั้นๆ ว่าเสียงจะถูกส่งไปประมวลผลโดย Google นอกประเทศไทย ซึ่งอาจมีมาตรฐานคุ้มครองข้อมูลไม่เท่าไทย ใช้เพื่อรับออเดอร์เท่านั้น และร้านไม่เก็บไฟล์เสียง มีปุ่ม "ยินยอมและเริ่มพูด" คู่กับ "สั่งด้วยการแตะแทน" ขนาดเท่ากัน แยกจากความยินยอมเรื่องใบหน้าและสมาชิก บันทึกหลักฐานรายเซสชัน (เวลา ตู้ เวอร์ชันข้อความ) โดยไม่ผูกกับตัวบุคคล และมีปุ่มหยุดเสียงเพื่อกลับไปแตะจอได้ตลอด</p>
+  </div>
+  <p>PDPC ยังไม่ประกาศรายชื่อประเทศที่มีมาตรฐานเพียงพอ จึงใช้มาตรการต่อไปนี้ร่วมกับความยินยอม</p>
+  <ol class="steps">
+    <li><span>ใช้ Gemini ผ่าน <b>Vertex AI แบบจ่ายเงิน</b>เท่านั้น และยอมรับ Cloud Data Processing Addendum ห้ามใช้คีย์ฟรีจาก AI Studio เพราะ Google นำข้อมูลไปพัฒนาโมเดลและให้คนอ่านได้</span></li>
+    <li><span>เรียกผ่าน <b>endpoint สิงคโปร์</b> (<code>asia-southeast1</code>) ซึ่ง Google รับประกันที่ตั้งการประมวลผลสำหรับรุ่น Live native audio ห้ามใช้ global endpoint</span></li>
+    <li><span>ปิด data caching และขอยกเว้น abuse monitoring logging เพื่อไม่ให้ Google เก็บข้อมูล</span></li>
+    <li><span>ส่งเฉพาะเสียงกับข้อมูลเมนู ไม่ส่งภาพใบหน้า embedding ชื่อ หรือเบอร์โทร และไม่ใช้เสียงทำ voiceprint</span></li>
+    <li><span>ให้ทนายตรวจว่า SCC ใน CDPA ของ Google ใช้รองรับการส่งออกจากไทยตามประกาศมาตรา 29 ได้หรือไม่ ระหว่างรอ เดโมใช้กับพนักงานหรือผู้ทดสอบที่ยินยอมแล้วเท่านั้น</span></li>
+  </ol>
+  <p class="note">หลังเดโม: ถ้าผู้เชี่ยวชาญ PDPA ยืนยันเงื่อนไขข้างต้น ใช้ Gemini Live ต่อกับลูกค้าจริงได้ ถ้าไม่ผ่าน ย้ายไปถอดเสียงและพูดตอบบน VPS ตามตัวเลือกด้านล่าง ส่วนเสียงจึงออกแบบหลัง interface เดียวเพื่อสลับได้ และถ้า Google เพิ่มการรับประกันที่ตั้งการประมวลผลใน region กรุงเทพฯ (<code>asia-southeast3</code>) ให้ย้ายไป region นั้น</p>
+
+  <h3>ทางสำรอง: ถอดเสียงแบบโฮสต์เอง</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>ตัวเลือก</th><th>ค่าใช้จ่ายเพิ่ม</th><th>ข้อดี</th><th>ข้อเสียและความเสี่ยง</th></tr></thead>
+    <tbody>
+      <tr><td>บนตู้ (N100)</td><td>0 บาท ถ้าใช้เครื่องเดิม</td><td>เสียงไม่ออกจากตู้ ไม่มีความหน่วงจากเครือข่าย</td><td>แย่ง CPU/RAM กับเบราว์เซอร์และ Face service (RAM ว่างราว 1.7 GB) ต้องอัปเดตโมเดลทุกตู้</td></tr>
+      <tr><td>บน VPS (CPU) <span class="chip c-prop">เสนอเริ่มที่นี่</span></td><td>0 บาท ถ้ามีกำลังเหลือ</td><td>ดูแลโมเดลที่เดียว ตู้เบาลง เสียงอยู่ใน VPS ไทยขององค์กร</td><td>ต้องใช้เครือข่ายทุกครั้ง หลายตู้พูดพร้อมกันต้องดูกำลัง CPU</td></tr>
+      <tr><td>บน VPS (GPU)</td><td>ไม่ทราบ</td><td>รองรับโมเดลใหญ่ เช่น Typhoon Whisper</td><td>ต้องสอบถามราคา GPU กับผู้ให้บริการ VPS</td></tr>
+      <tr><td><a href="https://docs.opentyphoon.ai/en/asr" target="_blank" rel="noopener">Typhoon API</a> (SCB 10X)</td><td>ฟรีด้วยคีย์ เพดาน 100 คำขอต่อนาที</td><td>ต่อได้เร็ว</td><td>เสียงออกนอก VPS ต้องอ่านนโยบายความเป็นส่วนตัวของผู้ให้บริการ</td></tr>
+      <tr><td><a href="https://cloud.google.com/speech-to-text/pricing" target="_blank" rel="noopener">Google Speech-to-Text V2</a></td><td>0.016 ดอลลาร์ต่อนาที (ราว 96 บาทต่อ 1,000 ออเดอร์เสียง ถ้าออเดอร์ละ 10 วินาที)</td><td>ไม่ต้องดูแลโมเดล</td><td>เสียงไปนอกประเทศ ต้องเข้ามาตรา 28–29 จึงไม่แนะนำ</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><b>เริ่มที่ VPS (CPU):</b> ใช้ <a href="https://huggingface.co/typhoon-ai/typhoon-asr-realtime" target="_blank" rel="noopener">Typhoon ASR Real-time</a> (114 ล้านพารามิเตอร์ CER 0.0984) ย้ายมาบนตู้ได้ถ้าวัดแล้ว N100 ถอดเสียง 10 วินาทีได้ภายในราว 2 วินาทีขณะ Face service ทำงาน</li>
+    <li><b>พูดตอบ:</b> สร้างคลิปเสียงล่วงหน้าสำหรับประโยคคงที่และชื่อเมนูของแต่ละ tenant แล้วประกอบประโยค ใช้การสังเคราะห์สดด้วย <a href="https://tts.ai/voices/khanomtan/" target="_blank" rel="noopener">KhanomTan TTS</a> เฉพาะเมื่อวัดแล้วเร็วพอ</li>
+    <li><b>ตีความคำสั่ง:</b> เริ่มจากจับคู่ชื่อเมนูแบบ fuzzy และตัวเลือก (ขนาด ความหวาน นม) ก่อน แล้วค่อยพิจารณาโมเดลภาษาขนาดเล็กบน VPS</li>
+    <li><b>ความเป็นส่วนตัว:</b> ไม่เก็บไฟล์เสียง ถอดแล้วทิ้งทันที และระบุเรื่องเสียงในข้อความแจ้งลูกค้า การส่งเสียงไปนอกประเทศทำได้เฉพาะผ่าน Gemini Live ตามเงื่อนไขด้านบน</li>
+    <li><b>ฮาร์ดแวร์เพิ่ม:</b> ไมโครโฟนลดเสียงรบกวนและลำโพงที่ตู้ ต้องทดสอบในร้านจริงที่มีเสียงเครื่องบดกาแฟ</li>
+  </ul>
+</section>
+
+<section id="loyalty">
+  <div class="kicker">ประสบการณ์ลูกค้า</div>
+  <h2>ทักทาย สั่งซ้ำ สะสมแต้ม</h2>
+  <p>เมื่อตู้จำลูกค้าได้ ระบบใช้ตัวตนนั้นทำ 3 อย่าง และทุกอย่างมีทางเลือกที่ไม่ใช้ใบหน้า เพราะการจดจำพลาดได้</p>
+  <ul>
+    <li><b>ทักทาย:</b> แสดงชื่อเล่นที่ลูกค้าเลือกเองตอนลงทะเบียน ไม่แสดงประวัติการสั่งเต็มจนกว่าลูกค้ายืนยัน</li>
+    <li><b>สั่งซ้ำ:</b> เสนอเมนูที่สั่งล่าสุดหรือบ่อยสุด กดยืนยันครั้งเดียว ข้อมูลจากประวัติทุกสาขาในกิจการเดียวกัน</li>
+    <li><b>สะสมแต้ม:</b> ผูกแต้มกับเรคอร์ดลูกค้าเมื่อชำระสำเร็จ ใช้ได้ทุกสาขาของกิจการ</li>
+    <li><b>ทางเลือกสำรอง:</b> เบอร์โทรหรือ QR สมาชิกใช้สะสมแต้มได้ทันที การดูประวัติหรือแลกแต้มยืนยันด้วย OTP หรือ PIN</li>
+    <li><b>การลงทะเบียน:</b> ครั้งแรกที่ตู้ผ่านหน้าขอความยินยอม และผูกกับตัวตนสำรอง เพื่อให้แต้มไม่หายเมื่อต้องลงทะเบียนใหม่ เช่น เปลี่ยนโมเดล</li>
+  </ul>
+  <div class="callout">
+    <p><b>ขอบเขตสิทธิ์ของใบหน้า:</b> ใบหน้าใช้ได้แค่ทักทาย เสนอเมนูสั่งซ้ำ และสะสมแต้ม การแลกแต้มและการดูประวัติการสั่งเต็มต้องยืนยันด้วย PIN เสมอแม้ตู้จะจำหน้าได้ เพราะยังไม่มี liveness และการจดจำอาจจับผิดคน</p>
+  </div>
+</section>
+
+<section id="data">
+  <div class="kicker">ข้อมูล</div>
+  <h2>โมเดลข้อมูลและการเข้ารหัส</h2>
+  <p>ทุกตารางที่เกี่ยวกับลูกค้าอ้างอิง tenant_id และถูกกันด้วย row-level security</p>
+  <div class="tbl"><table>
+    <thead><tr><th>ตาราง</th><th>เก็บอะไร</th></tr></thead>
+    <tbody>
+      <tr><td><code>tenant</code></td><td>กิจการ และข้อความขอความยินยอมเวอร์ชันปัจจุบัน</td></tr>
+      <tr><td><code>branch</code></td><td>สาขาของแต่ละ tenant</td></tr>
+      <tr><td><code>device</code></td><td>ตู้แต่ละเครื่อง ผูกกับสาขา โทเคนประจำตู้ เวอร์ชัน config</td></tr>
+      <tr><td><code>staff_user</code></td><td>ผู้ใช้เว็บและบทบาท</td></tr>
+      <tr><td><code>customer</code></td><td>ลูกค้าภายใน tenant เดียว</td></tr>
+      <tr><td><code>consent</code></td><td>เวอร์ชันข้อความ เวลาให้และถอน การยืนยันว่าบรรลุนิติภาวะ</td></tr>
+      <tr><td><code>face_template</code></td><td>embedding ที่เข้ารหัส พร้อม model_id จำนวนมิติ คุณภาพ และวันหมดอายุ</td></tr>
+      <tr><td><code>order</code></td><td>ออเดอร์ พร้อม idempotency key</td></tr>
+      <tr><td><code>audit</code></td><td>บันทึกเหตุการณ์แบบเพิ่มอย่างเดียว</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><b>ฝั่ง backend:</b> embedding เข้ารหัสด้วย AES-GCM แบบ envelope encryption คีย์แยกต่อ tenant คีย์หลักอยู่ใน secrets manager บนเครื่องแยกจากฐานข้อมูล ค้นหาในหน่วยความจำหลังถอดรหัส และไม่เขียน embedding ที่ถอดรหัสแล้วลงดิสก์</li>
+    <li><b>ฝั่งตู้:</b> เปิด BitLocker และเก็บโทเคนผ่าน Windows DPAPI หรือ TPM ไม่เก็บภาพใบหน้า</li>
+    <li><b>เปลี่ยนโมเดลทีหลัง:</b> เปิดใช้สองโมเดลพร้อมกันช่วงย้าย แล้วชวนลูกค้าลงทะเบียนใหม่ในครั้งถัดไปที่มาใช้บริการ</li>
+  </ul>
+</section>
+
+<section id="pdpa">
+  <div class="kicker">กฎหมาย</div>
+  <h2>ความปลอดภัยและ PDPA</h2>
+  <p>ใบหน้าเป็นข้อมูลชีวมิติที่ต้องได้รับความยินยอมโดยชัดแจ้ง จึงแยกข้อมูลตามกิจการและเก็บข้อมูลไว้ในไทย</p>
+  <ul>
+    <li><b>บทบาทตามกฎหมาย:</b> แต่ละกิจการเป็นผู้ควบคุมข้อมูล (controller) ผู้ให้บริการแพลตฟอร์มเป็นผู้ประมวลผล (processor) ต้องทำสัญญาประมวลผลข้อมูลกับทุกกิจการ</li>
+    <li><b>ความยินยอม:</b> แยกต่อ tenant ระบุว่าครอบคลุมทุกสาขา การถอนต้องง่ายเท่าตอนให้</li>
+    <li><b>ผู้เยาว์:</b> ไม่เปิดให้ผู้เยาว์ลงทะเบียนใบหน้าเพราะตู้ตรวจอายุไม่ได้ หน้าขอความยินยอมให้ยืนยันว่าบรรลุนิติภาวะแล้ว ผู้เยาว์ใช้เบอร์โทรหรือ QR สมาชิกแทน <span class="chip c-check">รอผู้เชี่ยวชาญ PDPA</span></li>
+    <li><b>การส่งข้อมูลข้ามแดน:</b> เก็บและประมวลผลในไทย ถ้าจำเป็นต้องส่งออก ต้องเข้าเงื่อนไขมาตรา 28–29 (<a href="https://tilleke.com/?p=64941" target="_blank" rel="noopener">ที่มา</a>)</li>
+    <li><b>ข้อยกเว้นเรื่องเสียง:</b> เสียงสั่งออเดอร์ส่งไป Gemini Live ที่ประมวลผลในสิงคโปร์ได้ โดยอาศัยความยินยอมหลังแจ้งเรื่องมาตรฐานของปลายทาง ร่วมกับข้อตกลงประมวลผลข้อมูลของ Google (<a href="#voice">ดูเงื่อนไข</a>) ใบหน้าและข้อมูลชีวมิติยังเก็บและประมวลผลในไทยเท่านั้น <span class="chip c-check">รอผู้เชี่ยวชาญ PDPA</span></li>
+    <li><b>ระยะเก็บ:</b> face_template ถูกลบอัตโนมัติเมื่อลูกค้าไม่มาใช้บริการ 12 เดือน และมีเมนูลบตามคำขอ <span class="chip c-check">รอผู้เชี่ยวชาญ PDPA</span></li>
+    <li><b>ตู้:</b> BitLocker, Assigned Access และ ZeroTier เพื่อดูแลระบบจากระยะไกลเท่านั้น ห้ามให้ข้อมูลชีวมิติวิ่งผ่าน</li>
+    <li><b>ทีมแพลตฟอร์ม:</b> ไม่มีสิทธิ์เข้าถึงข้อมูลลูกค้าโดยปริยาย แต่ในทางเทคนิคผู้ดูแล VPS และ Vault เข้าถึงได้ จึงจำกัดผู้ถือสิทธิ์ ใช้การขออนุมัติเป็นครั้ง และบันทึก audit ทุกครั้ง</li>
+  </ul>
+  <p class="note">ข้อเสนอนี้ไม่ใช่คำปรึกษากฎหมาย ผู้เชี่ยวชาญ PDPA ควรตรวจข้อความยินยอมและสัญญาประมวลผลข้อมูลก่อนเปิดใช้งาน</p>
+</section>
+
+<section id="ops">
+  <div class="kicker">การดำเนินงาน</div>
+  <h2>ดูแลทุกสาขาจากส่วนกลาง</h2>
+  <ul>
+    <li><b>จัดการตู้:</b> ลงทะเบียนทีละเครื่อง ออกโทเคนที่หมุนเปลี่ยนได้ สั่งปิดหรือล้างข้อมูลจากระยะไกล ตั้งค่าต่อ tenant (โมเดล threshold) และส่ง heartbeat กลับโดยไม่มีภาพ</li>
+    <li><b>ปล่อยเวอร์ชัน:</b> ปล่อยเป็นกลุ่ม สาขาทดลองก่อนแล้วค่อยขยาย ย้อนกลับได้ และตรวจได้ว่าตู้ไหนใช้ UI เวอร์ชันอะไร</li>
+    <li><b>เน็ตหลุด:</b> ตู้แสดงหน้าสำรองและปิดการสั่งซื้อ POS ขายเงินสดต่อในโหมดออฟไลน์ เจ้าของร้านเห็นสาขาและตู้ที่ออฟไลน์</li>
+    <li><b>การชำระเงิน:</b> idempotency key ตรวจสถานะย้อนหลัง และรับ webhook จากเกตเวย์</li>
+  </ul>
+</section>
+
+<section id="risk">
+  <div class="kicker">ความเสี่ยง</div>
+  <h2>ไลเซนส์โมเดลและความเสี่ยงที่เหลือ</h2>
+  <p>โมเดล buffalo_l ของ InsightFace ใช้เชิงพาณิชย์ไม่ได้โดยไม่ขอไลเซนส์ ข้อเสนอนี้จึงใช้ AuraFace และ SFace ซึ่งใช้เชิงพาณิชย์ได้</p>
+  <div class="tbl"><table>
+    <thead><tr><th>รายการ</th><th>สถานะไลเซนส์</th><th>ผลต่อโครงการ</th></tr></thead>
+    <tbody>
+      <tr><td>โค้ด InsightFace</td><td>MIT</td><td>ใช้เชิงพาณิชย์ได้</td></tr>
+      <tr><td>โมเดล buffalo_l และ SCRFD</td><td>เฉพาะงานวิจัยที่ไม่ใช่เชิงพาณิชย์ (<a href="https://github.com/deepinsight/insightface" target="_blank" rel="noopener">README</a>)</td><td>ไม่ใช้ เว้นแต่ซื้อไลเซนส์ (ราคาไม่ประกาศ เป็นแผนสำรองถ้าความแม่นยำไม่พอ)</td></tr>
+      <tr><td><a href="https://huggingface.co/fal/AuraFace-v1" target="_blank" rel="noopener">AuraFace v1</a></td><td>Apache 2.0</td><td>ใช้ได้ แม่นยำต่ำกว่า ArcFace ต้นฉบับ และข้อมูลเทรนอาจไม่ครอบคลุมบางเชื้อชาติ</td></tr>
+      <tr><td>YuNet + SFace</td><td>Apache 2.0 ตาม<a href="https://localai.io/features/face-recognition/index.html" target="_blank" rel="noopener">เอกสาร LocalAI</a></td><td>ใช้ได้ ต้องตรวจที่ต้นทาง OpenCV อีกครั้ง</td></tr>
+      <tr><td>detector ในตัวอย่างโค้ด AuraFace</td><td>ยังไม่ได้ตรวจ</td><td>ใช้ YuNet แทน เพื่อตัดความเสี่ยง</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li>ความแม่นยำกับใบหน้าคนไทยและใบหน้าเด็กยังไม่มีข้อมูล ต้องทดสอบก่อนใช้งานจริง</li>
+    <li>ความเร็วบน N100 ยังไม่ได้วัด เครื่องที่ตรวจมี RAM ว่าง 1.7 GB จาก 7.8 GB และ CPU ใช้อยู่ 24% ก่อนรันงาน ควรปิดโปรแกรมพื้นหลังที่ไม่จำเป็น</li>
+    <li>ปล่อยโค้ดที่มีบั๊กครั้งเดียวอาจทำให้ตู้พังพร้อมกันทุกสาขา จึงต้องปล่อยเป็นกลุ่มและย้อนกลับได้</li>
+    <li>การหลอกตู้ด้วยรูปถ่าย (liveness) ทำในเฟส 4 ระหว่างนี้ความเสี่ยงจำกัดเพราะใบหน้าไม่ใช้อนุมัติการแลกแต้มหรือดูประวัติเต็ม</li>
+  </ul>
+</section>
+
+<section id="plan">
+  <div class="kicker">แผนสร้าง</div>
+  <h2>แผน 4 เฟส</h2>
+  <p>แต่ละเฟสจบเมื่อผ่านเกณฑ์ที่ระบุ ยังไม่กำหนดวันที่</p>
+  <div class="phases">
+    <article class="phase">
+      <span class="tag">เฟส 1</span>
+      <h3>ตู้เดี่ยว · product demo (MVP)</h3>
+      <p>ระบบสั่งออเดอร์แบบง่าย (เมนูตายตัว ตะกร้า หมายเลขคิว ยังไม่รับเงินจริง) สั่งด้วยเสียงผ่าน Gemini Live ชุดเปรียบเทียบ AuraFace กับ SFace และทดสอบ Edge kiosk กับ Assigned Access และ local agent</p>
+      <div class="done"><b>จบเมื่อ</b> สั่งเครื่องดื่มด้วยเสียงภาษาไทยได้ครบจนได้หมายเลขคิว วัดบน N100 และเลือกโมเดลใบหน้าได้ และล็อกตู้ได้จริง</div>
+    </article>
+    <article class="phase">
+      <span class="tag">เฟส 2</span>
+      <h3>1 กิจการ 2 สาขา</h3>
+      <p>VPS, ออเดอร์ PromptPay, บัตรคิว, Face identity, ความยินยอม, เว็บร้านพร้อม POS, เทสต์อ่านข้อมูลข้าม tenant, POS ออฟไลน์ และ Postgres replica</p>
+      <div class="done"><b>จบเมื่อ</b> สั่ง จ่าย และรับคิวได้จริงทั้งสองสาขา และซ้อมสลับไปเครื่องสำรองผ่าน</div>
+    </article>
+    <article class="phase">
+      <span class="tag">เฟส 3</span>
+      <h3>ขยายเป็น 10 สาขา</h3>
+      <p>เปิดทักทาย สั่งซ้ำ สะสมแต้ม และการจดจำข้ามสาขา</p>
+      <div class="done"><b>จบเมื่อ</b> ลูกค้าถูกจำข้ามสาขาได้ถูกต้องในการทดสอบจริง</div>
+    </article>
+    <article class="phase">
+      <span class="tag">เฟส 4</span>
+      <h3>หลายกิจการ</h3>
+      <p>ระบบสมัครและแยก tenant แผงแพลตฟอร์ม liveness และการปล่อยเวอร์ชันเป็นกลุ่ม</p>
+      <div class="done"><b>จบเมื่อ</b> ทดสอบแล้วว่าข้อมูลแต่ละกิจการแยกจากกันจริง</div>
+    </article>
+  </div>
+</section>
+
+<section id="asks">
+  <div class="kicker">ขออนุมัติ</div>
+  <h2>สิ่งที่ต้องตัดสินใจก่อนเริ่ม</h2>
+  <ul class="asks">
+    <li><span>เลือกเกตเวย์ PromptPay โดยขอใบเสนอราคาจาก Beam และ Opn Payments เป็นอย่างน้อย</span></li>
+    <li><span>เงินจากเกตเวย์เข้าบัญชีของแต่ละกิจการโดยตรงหรือผ่านแพลตฟอร์ม (มีผลทางกฎหมายและภาษี)</span></li>
+    <li><span>ยืนยัน RTO/RPO (ข้อเสนอ 1 ชั่วโมง / 5 นาที) และจัดเครื่องสำหรับ Postgres replica และ Vault</span></li>
+    <li><span>ยืนยันสเปก VPS (CPU, RAM, GPU, จำนวนเครื่อง) ไว้รองรับทางสำรองถ้าต้องย้ายเสียงมาโฮสต์เอง</span></li>
+    <li><span>Gemini Live: ตรวจราคาและ rate limit ที่ endpoint สิงคโปร์ ให้ทนายตรวจว่า CDPA/SCC ของ Google ใช้กับการส่งออกจากไทยได้ ยืนยันข้อความหน้ายินยอมเรื่องเสียง และตัดสินหลังเดโมว่าจะใช้กับลูกค้าจริงหรือย้ายเสียงมาไว้บน VPS</span></li>
+    <li><span>ทดสอบ Edge kiosk กับ Assigned Access บน Windows 11 Pro ถ้าไม่ผ่าน เลือกระหว่างอัปเกรดเป็น Enterprise หรือวิธีล็อกเครื่องแบบอื่น</span></li>
+    <li><span>กติกาเงินสดที่ POS: เปิดและปิดกะ นับเงิน และผู้อนุมัติการยกเลิกหรือคืนเงิน</span></li>
+    <li><span>ยืนยันเบอร์โทรด้วย OTP หรือ PIN และค่าส่ง SMS ถ้าใช้ OTP</span></li>
+    <li><span>ระยะเก็บ face_template (ข้อเสนอ 12 เดือน) และนโยบายไม่ให้ผู้เยาว์ลงทะเบียนใบหน้า</span></li>
+    <li><span>ให้ผู้เชี่ยวชาญ PDPA ตรวจข้อความยินยอม (ใบหน้า เสียง เบอร์โทร) และสัญญาประมวลผลข้อมูล</span></li>
+  </ul>
+</section>
+
+</main>
+</div>
+
+<footer>
+  ตัวเลขราคาและสเปกโมเดลมาจากหน้าของผู้ให้บริการและแหล่งข่าว ยังไม่ใช่ราคาที่ยืนยันกับองค์กร · จัดทำจากสเปกสถาปัตยกรรมฉบับ 16 ต.ค. 2026
+</footer>
+
+</body></html>
