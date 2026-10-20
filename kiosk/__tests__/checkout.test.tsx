@@ -1,14 +1,17 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../lib/api';
 import { Kiosk } from '../components/Kiosk';
 import type { Cart, Order } from '../lib/types';
 import { fakeApi } from './support/fake-api';
 import { fakeVoiceLink } from './support/fake-voice-link';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 const statusPageUrl = 'http://localhost:3000/q/?order=o-1';
 const order: Order = {
@@ -99,5 +102,60 @@ describe('ยืนยันออเดอร์', () => {
     await user.click(await screen.findByRole('button', { name: 'ยืนยันสั่ง' }));
 
     expect(api.calls.checkout.map((c) => c[1])).toEqual(['k-1', 'k-2']);
+  });
+
+  const expired = () => new ApiError(409, { code: 'CART_EXPIRED', message: 'ตะกร้าหมดอายุ กรุณาเริ่มสั่งใหม่' });
+
+  async function expectBackToWelcome() {
+    expect(await screen.findByText('ตะกร้าหมดอายุ กรุณาเริ่มสั่งใหม่')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'เริ่มสั่ง' })).toBeNull();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+    expect(screen.getByRole('button', { name: 'เริ่มสั่ง' })).toBeTruthy();
+    expect(screen.queryByText('ตะกร้าหมดอายุ กรุณาเริ่มสั่งใหม่')).toBeNull();
+  }
+
+  it('AC25: checkout ได้ CART_EXPIRED แสดงข้อความแล้วกลับหน้าต้อนรับ', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = fakeApi({ checkout: async () => { throw expired(); } });
+    render(<Kiosk api={api} voice={fakeVoiceLink().link} newIdempotencyKey={keys('k-1')} />);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await toConfirm(user);
+    await user.click(await screen.findByRole('button', { name: 'ยืนยันสั่ง' }));
+    await expectBackToWelcome();
+  });
+
+  it('AC25: addLine ได้ CART_EXPIRED ใช้กฎเดียวกัน กลับหน้าต้อนรับ', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = fakeApi({ addLine: async () => { throw expired(); } });
+    render(<Kiosk api={api} voice={fakeVoiceLink().link} />);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: /^เอสเพรสโซ่/ }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'ใส่ตะกร้า' }));
+    await expectBackToWelcome();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('AC25: changeQuantity และ removeLine ได้ CART_EXPIRED กลับหน้าต้อนรับ', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const api = fakeApi({
+      changeQuantity: async () => { throw expired(); },
+      removeLine: async () => { throw expired(); },
+    });
+    render(<Kiosk api={api} voice={fakeVoiceLink().link} />);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: /^เอสเพรสโซ่/ }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'ใส่ตะกร้า' }));
+    await user.click(await screen.findByRole('button', { name: '+' }));
+    await expectBackToWelcome();
+
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: /^เอสเพรสโซ่/ }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'ใส่ตะกร้า' }));
+    await user.click(await screen.findByRole('button', { name: 'ลบ' }));
+    await expectBackToWelcome();
   });
 });

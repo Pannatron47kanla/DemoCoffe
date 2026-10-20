@@ -1,8 +1,9 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiError, type KioskApi } from '../lib/api';
 import type { Cart, MenuItem, Order } from '../lib/types';
+import { EXPIRED_NOTICE_MS } from '../lib/timing';
 import type { VoiceLink } from '../lib/voice-link';
 import { ConfirmScreen } from './ConfirmScreen';
 import { ItemOptionsDialog, type AddInput } from './ItemOptionsDialog';
@@ -23,6 +24,7 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
   const [order, setOrder] = useState<Order | null>(null);
   const keyRef = useRef<string | null>(null);
 
+  const [expired, setExpired] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // แสดง message จาก API ตามที่ได้รับ; error อื่น (เช่น เครือข่าย) แสดงข้อความกลาง
@@ -33,8 +35,24 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
       await action();
     } catch (e) {
       setError(e instanceof ApiError ? e.body.message : 'ระบบขัดข้อง กรุณาติดต่อพนักงาน');
+      if (e instanceof ApiError && e.body.code === 'CART_EXPIRED') setExpired(true);
     }
   }
+
+  // ตะกร้าหมดอายุ: แสดงข้อความค้างไว้ครู่หนึ่งแล้วกลับหน้าต้อนรับ
+  useEffect(() => {
+    if (!expired) return;
+    const timer = setTimeout(() => {
+      setExpired(false);
+      setError(null);
+      setCart(null);
+      setOrder(null);
+      setSelected(null);
+      setProblemLineIds([]);
+      setScreen('welcome');
+    }, EXPIRED_NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [expired]);
 
   async function start() {
     setBusy(true);
