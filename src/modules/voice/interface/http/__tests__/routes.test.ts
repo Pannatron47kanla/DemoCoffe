@@ -5,6 +5,7 @@ import { expectMatchesSpec } from '../../../../../../tests/support/openapi';
 import { errorHandler } from '../../../../../shared/http-errors';
 import { fixedClock } from '../../../../../shared/clock';
 import { sequentialIds } from '../../../../../shared/ids';
+import { VoiceConsentText } from '../../../domain/voice-consent-text';
 import { FakeCartAvailability, FakeConsentTexts, FakeVoiceGateway, InMemoryVoiceSessions } from '../../../application/__tests__/fakes';
 import { createVoiceModule } from '../../../module';
 
@@ -121,6 +122,19 @@ describe('voice HTTP routes', () => {
 
     expect(res.status).toBe(409);
     expect(res.body.code).toBe('CART_ALREADY_CHECKED_OUT');
+    expectMatchesSpec('post', '/voice/sessions', res);
+    expect(sessions.count()).toBe(0);
+    expect(gateway.calls.length).toBe(0);
+  });
+
+  it('AC9: ยินยอมข้อความเก่า ตอบ 409 CONSENT_TEXT_OUTDATED พร้อม currentVersion ไม่มีบันทึก', async () => {
+    consentTexts.text = VoiceConsentText.of('voice-demo-v2', 'ข้อความใหม่');
+
+    const res = await request(app).post('/voice/sessions').send({ cartId: CART, consentTextVersion: 'voice-demo-v1' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('CONSENT_TEXT_OUTDATED');
+    expect(res.body.details.currentVersion).toBe('voice-demo-v2');
     expectMatchesSpec('post', '/voice/sessions', res);
     expect(sessions.count()).toBe(0);
     expect(gateway.calls.length).toBe(0);

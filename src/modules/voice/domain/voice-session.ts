@@ -1,3 +1,4 @@
+import { DomainError } from '../../../shared/domain-error';
 import type { VoiceConsentText } from './voice-consent-text';
 
 export interface VoiceSessionState {
@@ -12,8 +13,11 @@ export interface VoiceSessionState {
 export class VoiceSession {
   private constructor(private readonly state: VoiceSessionState) {}
 
-  // การตรวจเวอร์ชันที่ลูกค้าเห็น (AC9) เพิ่มทีหลัง
+  // R2 ยินยอมได้เฉพาะเวอร์ชันข้อความปัจจุบัน (AC9)
   static consent(input: { id: string; cartId: string; kioskId: string; shownVersion: string; current: VoiceConsentText; now: Date }): VoiceSession {
+    if (input.shownVersion !== input.current.version) {
+      throw new DomainError('CONSENT_TEXT_OUTDATED', { currentVersion: input.current.version });
+    }
     return new VoiceSession({
       id: input.id,
       cartId: input.cartId,

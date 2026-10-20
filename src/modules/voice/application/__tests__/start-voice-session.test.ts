@@ -73,4 +73,16 @@ describe('StartVoiceSession', () => {
     expect(sessions.count()).toBe(0);
     expect(gateway.calls.length).toBe(0);
   });
+
+  it('AC9: ยินยอมด้วย voice-demo-v1 แต่ปัจจุบันเป็น voice-demo-v2 → CONSENT_TEXT_OUTDATED ไม่มีบันทึก ไม่ขอโทเคน', async () => {
+    consentTexts.text = VoiceConsentText.of('voice-demo-v2', 'ข้อความใหม่');
+
+    await expect(start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' })).rejects.toMatchObject({
+      code: 'CONSENT_TEXT_OUTDATED',
+      details: { currentVersion: 'voice-demo-v2' },
+    });
+
+    expect(sessions.count()).toBe(0);
+    expect(gateway.calls.length).toBe(0);
+  });
 });
