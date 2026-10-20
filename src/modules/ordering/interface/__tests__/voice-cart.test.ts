@@ -3,7 +3,7 @@ import { fixedClock } from '../../../../shared/clock';
 import { sequentialIds } from '../../../../shared/ids';
 import { createOrderingModule } from '../../module';
 import { americano, latte } from '../../domain/__tests__/menu-fixtures';
-import { FakeMenu, InMemoryOrdering } from './fakes';
+import { FakeMenu, InMemoryOrdering } from '../../application/__tests__/fakes';
 
 describe('voiceCart', () => {
   it('AC3: voiceCart.add เพิ่มรายการด้วยกฎ UC-01 และคืน JSON ตาม Cart', async () => {

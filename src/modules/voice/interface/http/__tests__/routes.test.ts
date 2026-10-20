@@ -228,4 +228,35 @@ describe('voice HTTP routes', () => {
     expect(res.body.cart.total.amount).toBe('160.00');
     expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
   });
+
+  // ประกอบ ordering จริง (in-memory) กับ voice ใน app เดียว แล้วยินยอมเสียง
+  async function composeWithConsent(clock = fixedClock('2026-10-20T02:30:00Z')) {
+    const ids = sequentialIds();
+    const ordering = createOrderingModule({ uow: new InMemoryOrdering(), menu: new FakeMenu([latte, americano]), clock, ids });
+    const voice = createVoiceModule({
+      sessions, carts: ordering.cartAvailability, consentTexts, gateway, menu: new FakeVoiceMenu(),
+      cartOperations: ordering.voiceCart, clock, ids, kioskId: 'kiosk-1',
+    });
+    const both = express();
+    both.use(express.json());
+    both.use(ordering.router);
+    both.use(voice.router);
+    both.use(errorHandler);
+    const cart = await request(both).post('/carts');
+    const consent = await request(both).post('/voice/sessions').send({ cartId: cart.body.id, consentTextVersion: 'voice-demo-v1' });
+    const call = (body: unknown) => request(both).post(`/voice/sessions/${consent.body.id}/function-calls`).send(body as object);
+    return { both, cart: cart.body, call };
+  }
+
+  it('AC4: POST /voice/sessions/{id}/function-calls change_quantity เปลี่ยนเป็น 4 แก้ว ตอบ 200 ตาม spec', async () => {
+    const { call } = await composeWithConsent();
+    const added = await call({ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: ['size-l', 'milk-oat'], quantity: 2 } });
+
+    const res = await call({ name: 'change_quantity', args: { lineId: added.body.cart.lines[0].id, quantity: 4 } });
+
+    expect(res.status).toBe(200);
+    expect(res.body.action).toBe('SHOW_CART');
+    expect(res.body.cart.lines[0].quantity).toBe(4);
+    expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
+  });
 });

@@ -40,6 +40,8 @@ function functionCallBody(body: unknown): VoiceFunctionCall {
         optionChoiceIds: (a.optionChoiceIds as string[] | undefined) ?? [],
         quantity: a.quantity as number,
       };
+    case 'change_quantity':
+      return { name, lineId: a.lineId as string, quantity: a.quantity as number };
     default:
       throw new RequestValidationError(['name']);
   }

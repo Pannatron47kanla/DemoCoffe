@@ -1,0 +1,31 @@
+import type { AddCartLine } from '../application/add-cart-line';
+import type { ChangeCartLineQuantity } from '../application/change-cart-line-quantity';
+import type { GetCart } from '../application/get-cart';
+import type { RemoveCartLine } from '../application/remove-cart-line';
+import { toCartJson } from './http/mapper';
+
+type Json = Record<string, unknown>;
+
+// ให้ voice ใช้กฎ UC-01 ชุดเดียวกับการแตะจอ (UC-03 R7) ผลเป็น JSON ตาม Cart; voice ไม่เห็นภายใน ordering
+export function voiceCartOperations(useCases: {
+  addCartLine: AddCartLine;
+  changeCartLineQuantity: ChangeCartLineQuantity;
+  removeCartLine: RemoveCartLine;
+  getCart: GetCart;
+}) {
+  return {
+    add: async (cartId: string, input: { menuItemId: string; optionChoiceIds: string[]; quantity: number }): Promise<Json> =>
+      toCartJson(await useCases.addCartLine.execute({ cartId, ...input })),
+    changeQuantity: async (cartId: string, lineId: string, quantity: number): Promise<Json> =>
+      toCartJson(await useCases.changeCartLineQuantity.execute({ cartId, lineId, quantity })),
+    remove: async (_cartId: string, _lineId: string): Promise<Json> => {
+      throw new Error('not implemented');
+    },
+    view: async (_cartId: string): Promise<Json> => {
+      throw new Error('not implemented');
+    },
+    readyForCheckout: async (_cartId: string): Promise<Json> => {
+      throw new Error('not implemented');
+    },
+  };
+}

@@ -34,4 +34,12 @@ describe('CallVoiceFunction', () => {
     expect(result.action).toBe('SHOW_CART');
     expect(result.cart).toEqual({ id: CART_ID });
   });
+
+  it("AC4: change_quantity เรียก cartOperations.changeQuantity(cartId, lineId, 4)", async () => {
+    const result = await useCase.execute({ sessionId: SESSION_ID, call: { name: 'change_quantity', lineId: 'line-1', quantity: 4 } });
+
+    expect(cartOperations.calls[0]).toEqual({ op: 'changeQuantity', cartId: CART_ID, args: ['line-1', 4] });
+    expect(result.action).toBe('SHOW_CART');
+    expect(result.cart).toEqual({ id: CART_ID });
+  });
 });
