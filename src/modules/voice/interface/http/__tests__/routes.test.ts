@@ -1,6 +1,6 @@
 import express from 'express';
 import request from 'supertest';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectMatchesSpec } from '../../../../../../tests/support/openapi';
 import { errorHandler } from '../../../../../shared/http-errors';
 import { fixedClock } from '../../../../../shared/clock';
@@ -413,5 +413,27 @@ describe('voice HTTP routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.cart.expiresAt).toBe('2026-10-20T02:55:00.000Z');
     expectMatchesSpec('post', FN_CALLS, res);
+  });
+
+  it('AC14: sessionId ที่ไม่มี → 404 VOICE_SESSION_NOT_FOUND', async () => {
+    const { both } = await composeWithConsent();
+
+    const res = await request(both).post('/voice/sessions/00000000-0000-4000-8000-0000000000ff/function-calls').send({ name: 'view_cart', args: {} });
+
+    expect(res.status).toBe(404);
+    expect(res.body.code).toBe('VOICE_SESSION_NOT_FOUND');
+    expectMatchesSpec('post', FN_CALLS, res);
+  });
+
+  it('AC14: sessionId ไม่ใช่ uuid → 404 VOICE_SESSION_NOT_FOUND', async () => {
+    const { both } = await composeWithConsent();
+    const findById = vi.spyOn(sessions, 'findById');
+
+    const res = await request(both).post('/voice/sessions/abc/function-calls').send({ name: 'view_cart', args: {} });
+
+    expect(res.status).toBe(404);
+    expect(res.body.code).toBe('VOICE_SESSION_NOT_FOUND');
+    expectMatchesSpec('post', FN_CALLS, res);
+    expect(findById).not.toHaveBeenCalled(); // id ผิดรูปแบบไม่ถึง DB (uuid cast จะ error)
   });
 });
