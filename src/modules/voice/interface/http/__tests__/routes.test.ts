@@ -374,4 +374,32 @@ describe('voice HTTP routes', () => {
     expect(res.body.code).toBe('QUANTITY_OUT_OF_RANGE');
     expectMatchesSpec('post', FN_CALLS, res);
   });
+
+  it('AC13: เซสชันของตะกร้า A ใช้ lineId ของตะกร้า B → 404 CART_LINE_NOT_FOUND ตะกร้า B ไม่เปลี่ยน', async () => {
+    const { both, call } = await composeWithConsent();
+    const cartB = (await request(both).post('/carts')).body.id;
+    const lineB = (await request(both).post(`/carts/${cartB}/lines`).send({ menuItemId: 'latte', optionChoiceIds: ['size-l'], quantity: 2 })).body.lines[0].id;
+    const before = await request(both).get(`/carts/${cartB}`);
+
+    const change = await call({ name: 'change_quantity', args: { lineId: lineB, quantity: 5 } });
+    const remove = await call({ name: 'remove_from_cart', args: { lineId: lineB } });
+
+    for (const res of [change, remove]) {
+      expect(res.status).toBe(404);
+      expect(res.body.code).toBe('CART_LINE_NOT_FOUND');
+      expectMatchesSpec('post', FN_CALLS, res);
+    }
+    expect((await request(both).get(`/carts/${cartB}`)).body).toEqual(before.body);
+  });
+
+  it('AC13: args มี cartId ปลอม ยังใช้ตะกร้าของเซสชัน', async () => {
+    const { both, cart, call } = await composeWithConsent();
+    const cartB = (await request(both).post('/carts')).body.id;
+
+    const res = await call({ name: 'view_cart', cartId: cartB, args: { cartId: cartB } });
+
+    expect(res.status).toBe(200);
+    expect(res.body.cart.id).toBe(cart.id);
+    expectMatchesSpec('post', FN_CALLS, res);
+  });
 });
