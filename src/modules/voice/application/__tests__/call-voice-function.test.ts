@@ -42,4 +42,12 @@ describe('CallVoiceFunction', () => {
     expect(result.action).toBe('SHOW_CART');
     expect(result.cart).toEqual({ id: CART_ID });
   });
+
+  it("AC5: remove_from_cart เรียก cartOperations.remove(cartId, lineId)", async () => {
+    const result = await useCase.execute({ sessionId: SESSION_ID, call: { name: 'remove_from_cart', lineId: 'line-1' } });
+
+    expect(cartOperations.calls[0]).toEqual({ op: 'remove', cartId: CART_ID, args: ['line-1'] });
+    expect(result.action).toBe('SHOW_CART');
+    expect(result.cart).toEqual({ id: CART_ID });
+  });
 });

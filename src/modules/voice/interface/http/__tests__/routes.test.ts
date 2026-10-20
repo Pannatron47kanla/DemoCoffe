@@ -259,4 +259,17 @@ describe('voice HTTP routes', () => {
     expect(res.body.cart.lines[0].quantity).toBe(4);
     expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
   });
+
+  it('AC5: POST /voice/sessions/{id}/function-calls remove_from_cart ลบรายการ ตะกร้าว่าง ตอบ 200 ตาม spec', async () => {
+    const { call } = await composeWithConsent();
+    const added = await call({ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: ['size-l', 'milk-oat'], quantity: 2 } });
+
+    const res = await call({ name: 'remove_from_cart', args: { lineId: added.body.cart.lines[0].id } });
+
+    expect(res.status).toBe(200);
+    expect(res.body.action).toBe('SHOW_CART');
+    expect(res.body.cart.lines).toEqual([]);
+    expect(res.body.cart.totalCups).toBe(0);
+    expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
+  });
 });

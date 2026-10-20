@@ -18,9 +18,8 @@ export function voiceCartOperations(useCases: {
       toCartJson(await useCases.addCartLine.execute({ cartId, ...input })),
     changeQuantity: async (cartId: string, lineId: string, quantity: number): Promise<Json> =>
       toCartJson(await useCases.changeCartLineQuantity.execute({ cartId, lineId, quantity })),
-    remove: async (_cartId: string, _lineId: string): Promise<Json> => {
-      throw new Error('not implemented');
-    },
+    remove: async (cartId: string, lineId: string): Promise<Json> =>
+      toCartJson(await useCases.removeCartLine.execute({ cartId, lineId })),
     view: async (_cartId: string): Promise<Json> => {
       throw new Error('not implemented');
     },

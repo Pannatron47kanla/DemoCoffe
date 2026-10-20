@@ -24,6 +24,10 @@ export class CallVoiceFunction {
         const cart = await cartOperations.changeQuantity(session.cartId, call.lineId, call.quantity);
         return { action: 'SHOW_CART', cart };
       }
+      case 'remove_from_cart': {
+        const cart = await cartOperations.remove(session.cartId, call.lineId);
+        return { action: 'SHOW_CART', cart };
+      }
       default:
         throw new Error(`${call.name} not implemented`); // งานของ AC ถัดไป
     }
