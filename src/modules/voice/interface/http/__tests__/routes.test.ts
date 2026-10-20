@@ -351,4 +351,27 @@ describe('voice HTTP routes', () => {
     expect(res.body.code).toBe('MENU_ITEM_UNAVAILABLE');
     expectMatchesSpec('post', FN_CALLS, res);
   });
+
+  it('AC12: ตะกร้า 18 แก้วเพิ่มอีก 3 → 409 CART_LIMIT_REACHED', async () => {
+    const { call, both, cart } = await composeWithConsent();
+    await call({ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: ['size-m'], quantity: 10 } });
+    await call({ name: 'add_to_cart', args: { menuItemId: 'americano', optionChoiceIds: ['size-m'], quantity: 8 } });
+
+    const res = await call({ name: 'add_to_cart', args: { menuItemId: 'americano', optionChoiceIds: ['size-l'], quantity: 3 } });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('CART_LIMIT_REACHED');
+    expectMatchesSpec('post', FN_CALLS, res);
+    expect((await request(both).get(`/carts/${cart.id}`)).body.totalCups).toBe(18);
+  });
+
+  it('AC12: add_to_cart 11 แก้ว → 409 QUANTITY_OUT_OF_RANGE', async () => {
+    const { call } = await composeWithConsent();
+
+    const res = await call({ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: ['size-m'], quantity: 11 } });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('QUANTITY_OUT_OF_RANGE');
+    expectMatchesSpec('post', FN_CALLS, res);
+  });
 });
