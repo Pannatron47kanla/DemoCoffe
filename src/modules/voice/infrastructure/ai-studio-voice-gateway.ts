@@ -1,11 +1,11 @@
-import { Modality } from '@google/genai';
+import { Modality, type CreateAuthTokenParameters } from '@google/genai';
 import { DomainError } from '../../../shared/domain-error';
 import type { VoiceGateway } from '../application/ports';
 import { VOICE_CONNECTION, type VoiceConnection } from '../domain/voice-connection';
 
 // รูปเดียวกับ GoogleGenAI#authTokens
 export interface AuthTokens {
-  create(params: { config: Record<string, unknown> }): Promise<{ name?: string }>;
+  create(params: CreateAuthTokenParameters): Promise<{ name?: string }>;
 }
 
 // ขอโทเคนชั่วคราวของ Gemini Live (AI Studio) ใช้ครั้งเดียว เสียงอย่างเดียว (AC12)
@@ -34,7 +34,7 @@ export class AiStudioVoiceGateway implements VoiceGateway {
   }
 
   // ขอโทเคนภายใน ISSUE_TIMEOUT_MS ทุกความล้มเหลวกลายเป็น VOICE_UNAVAILABLE (AC11)
-  private async requestToken(params: { config: Record<string, unknown> }): Promise<string> {
+  private async requestToken(params: CreateAuthTokenParameters): Promise<string> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error('token request timed out')), VOICE_CONNECTION.ISSUE_TIMEOUT_MS);
