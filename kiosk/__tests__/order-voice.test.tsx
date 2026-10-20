@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { VoiceSession } from '../lib/types';
@@ -73,5 +73,35 @@ describe('UC-04 voice session', () => {
     expect(fake.connections).toBe(1);
     expect(connect.mock.calls[0]?.[0]).toEqual(session.connection);
     expect(screen.queryByRole('button', { name: 'ยินยอม' })).toBeNull();
+  });
+
+  it('AC17: add_to_cart จาก Gemini แสดงตะกร้าจาก response', async () => {
+    const cart = {
+      id: 'cart-1', status: 'OPEN', expiresAt: '2026-10-20T02:46:00Z', totalCups: 2, total: { amount: '160.00', currency: 'THB' },
+      lines: [{
+        id: 'l1', menuItemId: 'latte', name: 'ลาเต้', options: [], quantity: 2,
+        unitPrice: { amount: '80.00', currency: 'THB' }, lineTotal: { amount: '160.00', currency: 'THB' },
+      }],
+    };
+    const body = { action: 'SHOW_CART', cart };
+    const api = fakeApi({
+      getConsentText: async () => ({ version: 'voice-demo-v1', text: 'ข้อความยินยอม' }),
+      startVoiceSession: async () => session,
+      callVoiceFunction: async () => ({ status: 200, body }),
+    });
+    const fake = fakeVoiceLink();
+    render(<Kiosk api={api} voice={fake.link} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+    await user.click(await screen.findByRole('button', { name: 'ยินยอม' }));
+    await screen.findByRole('button', { name: '⏹ หยุดเสียง' });
+
+    await act(async () => { fake.handlers().onFunctionCalls([{ id: 'fc1', name: 'add_to_cart', args: { menuItemId: 'latte', quantity: 2 } }]); });
+
+    await waitFor(() => expect(fake.responses).toHaveLength(1));
+    expect(api.calls.callVoiceFunction[0]).toEqual(['vs-1', { name: 'add_to_cart', args: { menuItemId: 'latte', quantity: 2 } }]);
+    expect(fake.responses[0]).toEqual([{ id: 'fc1', name: 'add_to_cart', response: body }]);
+    expect(screen.getAllByText(/160\.00/).length).toBeGreaterThan(0);
   });
 });

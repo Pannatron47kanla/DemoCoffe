@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError, type KioskApi } from '../lib/api';
 import type { Cart, MenuItem, Order } from '../lib/types';
 import { EXPIRED_NOTICE_MS, IDLE_PROMPT_MS, QUEUE_RETURN_MS } from '../lib/timing';
-import type { VoiceLink, VoiceLinkSession } from '../lib/voice-link';
+import type { FunctionCall, VoiceLink, VoiceLinkSession } from '../lib/voice-link';
+import { relayFunctionCalls } from '../lib/voice-relay';
 import { useIdle } from '../lib/use-idle';
 import { ConsentSheet } from './ConsentSheet';
 import { ConfirmScreen } from './ConfirmScreen';
@@ -32,6 +33,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
   const [idlePrompt, setIdlePrompt] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
   const voiceRef = useRef<VoiceLinkSession | null>(null);
+  const [, setShowCheckout] = useState(false); // Task 22 จะเปิดหน้ายืนยันจากค่านี้
   const [consent, setConsent] = useState<{ version: string; text: string } | null>(null);
 
   // แสดง message จาก API ตามที่ได้รับ; error อื่น (เช่น เครือข่าย) แสดงข้อความกลาง
@@ -123,7 +125,9 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
     await run(async () => {
       const session = await api.startVoiceSession(cart.id, version);
       voiceRef.current = await voice.connect(session.connection, {
-        onFunctionCalls: () => {},
+        onFunctionCalls: (calls) => {
+          void relay(session.id, calls);
+        },
         onTranscript: () => {},
         onClose: () => {
           voiceRef.current = null;
@@ -132,6 +136,18 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
       });
       setVoiceOn(true);
     });
+  }
+
+  // ส่ง function call ของ Gemini ต่อให้ api แล้วตอบกลับตามที่ได้รับ; fatal = ปิดเสียง กลับไปแตะจอ
+  async function relay(sessionId: string, calls: FunctionCall[]) {
+    const result = await relayFunctionCalls(api, sessionId, calls);
+    if (result.fatal) {
+      stopVoice();
+      return;
+    }
+    if (result.cart) setCart(result.cart);
+    if (result.showCheckout) setShowCheckout(true);
+    voiceRef.current?.sendFunctionResponses(result.responses);
   }
 
   function stopVoice() {
