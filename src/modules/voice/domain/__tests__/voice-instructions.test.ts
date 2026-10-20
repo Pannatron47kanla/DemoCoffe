@@ -40,6 +40,7 @@ describe('buildVoiceInstructions', () => {
     };
     for (const [rule, keyword] of Object.entries(rules)) expect(text, rule).toContain(keyword);
     expect(text).toContain('request_checkout');
+    for (const word of ['cartId', 'kioskId', 'kiosk', 'phone', 'เบอร์', 'image']) expect(text).not.toContain(word);
   });
 
   it('AC1: เมนูเดียวกันได้ข้อความเดียวกัน', () => {

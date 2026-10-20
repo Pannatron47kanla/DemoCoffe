@@ -1,5 +1,7 @@
 import { Modality } from '@google/genai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { buildVoiceInstructions } from '../../domain/voice-instructions';
+import { menu } from '../../domain/__tests__/voice-menu-fixtures';
 import { VOICE_FUNCTION_NAMES } from '../../domain/voice-function-call';
 import { AiStudioVoiceGateway, type AuthTokens } from '../ai-studio-voice-gateway';
 
@@ -86,7 +88,12 @@ describe('AiStudioVoiceGateway', () => {
 
   it('AC12: ไม่มีข้อมูลบุคคลในคำขอ', async () => {
     const { tokens, calls } = recordingTokens();
-    await new AiStudioVoiceGateway({ tokens, model: 'gemini-3.8-live' }).issueConnection(NOW, SETUP);
+    const realistic = { systemInstruction: buildVoiceInstructions(menu) };
+    await new AiStudioVoiceGateway({ tokens, model: 'gemini-3.8-live' }).issueConnection(NOW, realistic);
+
+    // คำขอทั้งก้อน (รวมคำสั่งระบบและ tools): คำที่ไม่ชนกับชื่อฟังก์ชัน
+    const full = JSON.stringify(calls[0]);
+    for (const word of ['cartId', 'kiosk', 'phone', 'image', '00000000-0000-4000-8000-0000000000c1']) expect(full).not.toContain(word);
 
     // ตัด systemInstruction กับ tools ออก: ชื่อฟังก์ชัน add_to_cart และคีย์ "name" ของ declaration ไม่ใช่ข้อมูลบุคคล
     const sent = calls[0]!.config;
