@@ -34,6 +34,21 @@ describe('PgVoiceSessionRepository', () => {
     expect(found?.toState()).toEqual(session.toState());
   });
 
+  it('AC13: add สองเซสชันของตะกร้าเดียวพร้อมกัน ได้แถวเดียว ทั้งสองคืนเซสชันเดียวกัน', async () => {
+    await db.pool.query("INSERT INTO carts (id, status, last_activity_at) VALUES ($1, 'OPEN', $2)", [id(2), T0]);
+    const make = (sessionId: string) => VoiceSession.consent({
+      id: sessionId, cartId: id(2), kioskId: 'kiosk-1', shownVersion: 'voice-demo-v1',
+      current: VoiceConsentText.of('voice-demo-v1', 'ข้อความทดสอบ'), now: T0,
+    });
+
+    const results = await Promise.all([repo.add(make(id(1))), repo.add(make(id(3)))]);
+
+    expect(results.map((r) => r.created).sort()).toEqual([false, true]);
+    expect(results[0].session.id).toBe(results[1].session.id);
+    const { rows: [{ count }] } = await db.pool.query('SELECT count(*)::int AS count FROM voice_sessions');
+    expect(count).toBe(1);
+  });
+
   it('AC3: voice_sessions มีเฉพาะคอลัมน์หลักฐาน ไม่มีข้อมูลบุคคลหรือเสียง', async () => {
     const { rows } = await db.pool.query(
       "SELECT column_name FROM information_schema.columns WHERE table_name = 'voice_sessions' AND table_schema = current_schema() ORDER BY ordinal_position",

@@ -106,4 +106,14 @@ describe('StartVoiceSession', () => {
     expect(again.created).toBe(false);
     expect(sessions.count()).toBe(1);
   });
+
+  it('AC13: สองคำขอพร้อมกันได้ created หนึ่งครั้ง', async () => {
+    const input = { cartId: CART_ID, consentTextVersion: 'voice-demo-v1' };
+
+    const results = await Promise.all([start.execute(input), start.execute(input)]);
+
+    expect(results.map((r) => r.created).sort()).toEqual([false, true]);
+    expect(results[0].session.id).toBe(results[1].session.id);
+    expect(sessions.count()).toBe(1);
+  });
 });

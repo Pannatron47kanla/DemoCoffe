@@ -38,8 +38,9 @@ export class InMemoryVoiceSessions implements VoiceSessionRepository {
 
   async add(session: VoiceSession): Promise<{ session: VoiceSession; created: boolean }> {
     this.addCalls += 1;
-    const existing = await this.findByCartId(session.cartId);
-    if (existing) return { session: existing, created: false };
+    // เช็กและเขียนในจังหวะเดียว (ไม่ await คั่น) เลียนแบบ ON CONFLICT ของ DB (AC13)
+    const existing = this.byCart.get(session.cartId);
+    if (existing) return { session: VoiceSession.restore(structuredClone(existing)), created: false };
     this.byCart.set(session.cartId, structuredClone(session.toState()));
     return { session, created: true };
   }

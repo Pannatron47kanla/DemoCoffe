@@ -17,11 +17,18 @@ export class PgVoiceSessionRepository implements VoiceSessionRepository {
 
   async add(session: VoiceSession): Promise<{ session: VoiceSession; created: boolean }> {
     const s = session.toState();
-    await this.pool.query(
-      'INSERT INTO voice_sessions (id, cart_id, kiosk_id, consent_text_version, consented_at) VALUES ($1, $2, $3, $4, $5)',
+    // ยินยอมพร้อมกัน: ตัวที่แพ้ชน cart_id ซ้ำ ไม่ error แต่คืนเซสชันที่มีอยู่ (AC13)
+    const { rows: [row] } = await this.pool.query<Row>(
+      `INSERT INTO voice_sessions (id, cart_id, kiosk_id, consent_text_version, consented_at)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (cart_id) DO NOTHING
+       RETURNING id, cart_id, kiosk_id, consent_text_version, consented_at`,
       [s.id, s.cartId, s.kioskId, s.consentTextVersion, s.consentedAt],
     );
-    return { session, created: true };
+    if (row) return { session: toSession(row), created: true };
+    const existing = await this.findByCartId(s.cartId);
+    if (!existing) throw new Error(`voice session for cart ${s.cartId} vanished after conflict`);
+    return { session: existing, created: false };
   }
 }
 
