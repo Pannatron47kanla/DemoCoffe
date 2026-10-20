@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { GoogleGenAI } from '@google/genai';
 import { createApp } from './app';
 import { systemClock } from './shared/clock';
@@ -11,6 +12,7 @@ const {
   HOST = '127.0.0.1', // เฟส 1 ไม่มีคีย์ตู้ รับเฉพาะเครื่องเดียวกัน
   PORT = '3000',
   PUBLIC_BASE_URL,
+  KIOSK_DIR = 'kiosk/out',
 } = process.env;
 
 // AC14: ตั้ง voice ผิด (เช่น AI Studio กับ production) ต้องหยุดก่อนต่อ DB
@@ -30,6 +32,7 @@ const gateway = voiceConfig.enabled && voiceConfig.apiKey
 const app = await createApp({
   pool: createPool(DATABASE_URL), menuPath: MENU_PATH, clock: systemClock, ids: randomIds,
   voice: { gateway, consentPath: voiceConfig.consentPath, kioskId: voiceConfig.kioskId },
+  ...(existsSync(KIOSK_DIR) ? { kioskDir: KIOSK_DIR } : {}), // ไม่มี build ก็ยังรัน API ได้
   ...(PUBLIC_BASE_URL ? { publicBaseUrl: PUBLIC_BASE_URL } : {}),
 });
 app.listen(Number(PORT), HOST, () => console.log(`api listening on http://${HOST}:${PORT}`));

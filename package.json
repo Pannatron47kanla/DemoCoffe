@@ -7,7 +7,7 @@
     "migrate": "docker compose run --rm migrate",
     "seed": "docker compose run --rm seed",
     "mock": "docker compose up mock",
-    "test": "vitest run",
+    "test": "vitest run && npm --prefix kiosk test",
     "test:watch": "vitest",
     "lint": "eslint .",
     "typecheck": "tsc",

@@ -2,7 +2,7 @@ import tseslint from 'typescript-eslint';
 import boundaries from './eslint.boundaries.js';
 
 export default [
-  { ignores: ['node_modules/**', 'dist/**'] },
+  { ignores: ['node_modules/**', 'dist/**', 'kiosk/.next/**', 'kiosk/out/**', 'kiosk/next-env.d.ts'] },
   ...tseslint.configs.recommended,
   {
     rules: {

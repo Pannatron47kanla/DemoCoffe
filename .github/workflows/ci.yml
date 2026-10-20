@@ -15,8 +15,11 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix kiosk
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm --prefix kiosk run typecheck
+      - run: npm --prefix kiosk run build
       - run: npx -y @redocly/cli@1.25.0 lint openapi.yaml
       # migrate จากศูนย์ → seed บน DB ใหม่ เพื่อยืนยันว่า migration และ seed ใช้ได้จริง
       - run: docker compose up -d --wait db

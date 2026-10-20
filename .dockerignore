@@ -4,3 +4,6 @@ node_modules
 docs
 tests
 **/__tests__
+kiosk/node_modules
+kiosk/.next
+kiosk/out

@@ -10,3 +10,10 @@ dist/
 .mcp.json
 .claude/settings.local.json
 .superpowers/brainstorm/
+
+# kiosk build
+kiosk/node_modules/
+kiosk/.next/
+kiosk/out/
+kiosk/next-env.d.ts
+kiosk/tsconfig.tsbuildinfo
