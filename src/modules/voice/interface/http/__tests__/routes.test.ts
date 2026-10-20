@@ -91,4 +91,26 @@ describe('voice HTTP routes', () => {
     expectMatchesSpec('post', '/voice/sessions', res);
     expect(sessions.count()).toBe(0);
   });
+
+  it('AC6: cartId ที่ไม่มีตอบ 404 CART_NOT_FOUND ไม่มีบันทึก', async () => {
+    carts.rejectWith = 'CART_NOT_FOUND';
+
+    const res = await request(app).post('/voice/sessions').send({ cartId: CART, consentTextVersion: 'voice-demo-v1' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.code).toBe('CART_NOT_FOUND');
+    expectMatchesSpec('post', '/voice/sessions', res);
+    expect(sessions.count()).toBe(0);
+    expect(gateway.calls.length).toBe(0);
+  });
+
+  it('AC6: cartId ไม่ใช่ uuid ตอบ 404 CART_NOT_FOUND', async () => {
+    const res = await request(app).post('/voice/sessions').send({ cartId: 'abc', consentTextVersion: 'voice-demo-v1' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.code).toBe('CART_NOT_FOUND');
+    expectMatchesSpec('post', '/voice/sessions', res);
+    expect(sessions.count()).toBe(0);
+    expect(gateway.calls.length).toBe(0);
+  });
 });
