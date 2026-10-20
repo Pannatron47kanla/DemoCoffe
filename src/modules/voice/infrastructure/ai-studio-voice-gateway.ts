@@ -1,7 +1,8 @@
 import { Modality, type CreateAuthTokenParameters } from '@google/genai';
 import { DomainError } from '../../../shared/domain-error';
-import type { VoiceGateway } from '../application/ports';
+import type { VoiceGateway, VoiceSetup } from '../application/ports';
 import { VOICE_CONNECTION, type VoiceConnection } from '../domain/voice-connection';
+import { VOICE_FUNCTION_DECLARATIONS } from './voice-function-declarations';
 
 // รูปเดียวกับ GoogleGenAI#authTokens
 export interface AuthTokens {
@@ -14,7 +15,7 @@ export class AiStudioVoiceGateway implements VoiceGateway {
 
   constructor(private readonly deps: { tokens: AuthTokens; model: string }) {}
 
-  async issueConnection(now: Date): Promise<VoiceConnection> {
+  async issueConnection(now: Date, setup: VoiceSetup): Promise<VoiceConnection> {
     const startBefore = new Date(now.getTime() + VOICE_CONNECTION.START_WITHIN_SECONDS * 1000);
     const expireTime = new Date(now.getTime() + VOICE_CONNECTION.TOKEN_LIFETIME_MINUTES * 60_000);
     const created = await this.requestToken({
@@ -22,10 +23,16 @@ export class AiStudioVoiceGateway implements VoiceGateway {
         uses: 1,
         newSessionExpireTime: startBefore.toISOString(),
         expireTime: expireTime.toISOString(),
-        // ล็อกรุ่นและรูปแบบการตอบ ตู้เปลี่ยนเองไม่ได้ ไม่ส่งข้อมูลบุคคลไปกับคำขอ
+        // ล็อกรุ่น เมนู ฟังก์ชัน ภาษา และรูปแบบการตอบ ตู้เปลี่ยนเองไม่ได้ ไม่ส่งข้อมูลบุคคลไปกับคำขอ
         liveConnectConstraints: {
           model: this.deps.model,
-          config: { responseModalities: [Modality.AUDIO], sessionResumption: {} },
+          config: {
+            responseModalities: [Modality.AUDIO],
+            sessionResumption: {},
+            systemInstruction: setup.systemInstruction,
+            tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
+            speechConfig: { languageCode: 'th-TH' },
+          },
         },
         httpOptions: { apiVersion: 'v1alpha' },
       },

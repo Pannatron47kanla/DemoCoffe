@@ -3,7 +3,7 @@ import { fixedClock } from '../../../../shared/clock';
 import { sequentialIds } from '../../../../shared/ids';
 import { VoiceConsentText } from '../../domain/voice-consent-text';
 import { StartVoiceSession } from '../start-voice-session';
-import { FakeCartAvailability, FakeConsentTexts, FakeVoiceGateway, InMemoryVoiceSessions } from './fakes';
+import { FakeCartAvailability, FakeConsentTexts, FakeVoiceGateway, FakeVoiceMenu, InMemoryVoiceSessions } from './fakes';
 
 const CART_ID = '00000000-0000-4000-8000-0000000000c1';
 
@@ -13,6 +13,7 @@ describe('StartVoiceSession', () => {
   let gateway: FakeVoiceGateway;
   let clock: ReturnType<typeof fixedClock>;
   let carts: FakeCartAvailability;
+  let menu: FakeVoiceMenu;
   let start: StartVoiceSession;
 
   beforeEach(() => {
@@ -21,8 +22,9 @@ describe('StartVoiceSession', () => {
     gateway = new FakeVoiceGateway();
     clock = fixedClock('2026-10-20T02:30:00Z');
     carts = new FakeCartAvailability();
+    menu = new FakeVoiceMenu();
     start = new StartVoiceSession({
-      sessions, carts, consentTexts, gateway, clock, ids: sequentialIds(), kioskId: 'kiosk-1',
+      sessions, carts, consentTexts, gateway, menu, clock, ids: sequentialIds(), kioskId: 'kiosk-1',
     });
   });
 
@@ -44,6 +46,18 @@ describe('StartVoiceSession', () => {
     expect(result.connection.model).toBe('gemini-3.8-live');
     expect(result.connection.startBefore).toEqual(new Date('2026-10-20T02:31:00Z'));
     expect(gateway.calls).toEqual([new Date('2026-10-20T02:30:00Z')]);
+  });
+
+  it('AC1: StartVoiceSession ส่งคำสั่งระบบที่สร้างจากเมนูปัจจุบันให้ gateway', async () => {
+    await start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' });
+    menu.items = [{ id: 'mocha', name: 'มอคค่า', basePriceSatang: 6000, available: true, optionGroups: [] }];
+    await start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' });
+
+    expect(gateway.setups).toHaveLength(2);
+    expect(gateway.setups[0]!.systemInstruction).toContain('ลาเต้');
+    expect(gateway.setups[0]!.systemInstruction).toContain('เอสเพรสโซ่');
+    expect(gateway.setups[1]!.systemInstruction).toContain('มอคค่า'); // อ่านเมนูใหม่ทุกครั้งที่ขอโทเคน
+    expect(gateway.setups[1]!.systemInstruction).not.toContain('ลาเต้');
   });
 
   it('AC4: ตะกร้ามีเซสชันแล้ว ได้เซสชันเดิม ข้อมูลเชื่อมต่อใหม่ ไม่มีบันทึกเพิ่ม', async () => {

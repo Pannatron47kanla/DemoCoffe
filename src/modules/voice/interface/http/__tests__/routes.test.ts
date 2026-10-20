@@ -6,7 +6,7 @@ import { errorHandler } from '../../../../../shared/http-errors';
 import { fixedClock } from '../../../../../shared/clock';
 import { sequentialIds } from '../../../../../shared/ids';
 import { VoiceConsentText } from '../../../domain/voice-consent-text';
-import { FakeCartAvailability, FakeConsentTexts, FakeVoiceGateway, InMemoryVoiceSessions } from '../../../application/__tests__/fakes';
+import { FakeCartAvailability, FakeConsentTexts, FakeVoiceGateway, FakeVoiceMenu, InMemoryVoiceSessions } from '../../../application/__tests__/fakes';
 import { createVoiceModule } from '../../../module';
 import { unavailableVoiceGateway } from '../../../index';
 import { createOrderingModule } from '../../../../ordering';
@@ -28,7 +28,7 @@ describe('voice HTTP routes', () => {
     app = express();
     app.use(express.json());
     app.use(createVoiceModule({
-      sessions, carts, consentTexts, gateway,
+      sessions, carts, consentTexts, gateway, menu: new FakeVoiceMenu(),
       clock: fixedClock('2026-10-20T02:30:00Z'), ids: sequentialIds(), kioskId: 'kiosk-1',
     }).router);
     app.use(errorHandler);
@@ -182,7 +182,7 @@ describe('voice HTTP routes', () => {
     const ids = sequentialIds();
     const ordering = createOrderingModule({ uow: new InMemoryOrdering(), menu: new FakeMenu([americano]), clock, ids });
     const voice = createVoiceModule({
-      sessions, carts: ordering.cartAvailability, consentTexts, gateway: unavailableVoiceGateway, clock, ids, kioskId: 'kiosk-1',
+      sessions, carts: ordering.cartAvailability, consentTexts, gateway: unavailableVoiceGateway, menu: new FakeVoiceMenu(), clock, ids, kioskId: 'kiosk-1',
     });
     const offApp = express();
     offApp.use(express.json());

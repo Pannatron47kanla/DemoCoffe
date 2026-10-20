@@ -15,6 +15,10 @@ export class JsonMenuRepository {
     return (await this.readAll()).filter((item) => ids.includes(item.id));
   }
 
+  async all(): Promise<MenuItem[]> {
+    return this.readAll();
+  }
+
   private async readAll(): Promise<MenuItem[]> {
     const { items } = JSON.parse(await readFile(this.path, 'utf8')) as { items: MenuItem[] };
     return items;

@@ -3,7 +3,8 @@ import type { VoiceConnection } from '../../domain/voice-connection';
 import { DomainError } from '../../../../shared/domain-error';
 import type { VoiceSessionRepository } from '../../domain/repositories';
 import { VoiceSession, type VoiceSessionState } from '../../domain/voice-session';
-import type { CartAvailability, ConsentTexts, VoiceGateway } from '../ports';
+import type { VoiceMenuItem } from '../../domain/voice-menu';
+import type { CartAvailability, ConsentTexts, VoiceGateway, VoiceMenu, VoiceSetup } from '../ports';
 
 export class FakeConsentTexts implements ConsentTexts {
   text = VoiceConsentText.of('voice-demo-v1', 'เสียงของคุณจะถูกส่งไปยัง Google (ข้อความทดสอบ)');
@@ -16,8 +17,10 @@ export class FakeVoiceGateway implements VoiceGateway {
   available = true;
   fail = false;
   calls: Date[] = [];
-  async issueConnection(now: Date): Promise<VoiceConnection> {
+  setups: VoiceSetup[] = [];
+  async issueConnection(now: Date, setup: VoiceSetup): Promise<VoiceConnection> {
     this.calls.push(now);
+    this.setups.push(setup);
     if (this.fail) throw new DomainError('VOICE_UNAVAILABLE');
     return {
       token: `auth_tokens/fake-${this.calls.length}`,
@@ -54,5 +57,15 @@ export class FakeCartAvailability implements CartAvailability {
   rejectWith?: string;
   async assertOpen(): Promise<void> {
     if (this.rejectWith) throw new DomainError(this.rejectWith);
+  }
+}
+
+export class FakeVoiceMenu implements VoiceMenu {
+  items: VoiceMenuItem[] = [
+    { id: 'latte', name: 'ลาเต้', basePriceSatang: 5500, available: true, optionGroups: [] },
+    { id: 'espresso', name: 'เอสเพรสโซ่', basePriceSatang: 4500, available: true, optionGroups: [] },
+  ];
+  async current(): Promise<VoiceMenuItem[]> {
+    return this.items;
   }
 }

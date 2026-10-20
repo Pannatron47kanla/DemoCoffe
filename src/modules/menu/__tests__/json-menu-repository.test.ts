@@ -50,3 +50,15 @@ describe('JsonMenuRepository', () => {
     expect(latte?.basePriceSatang).toBe(6000);
   });
 });
+
+describe('JsonMenuRepository.all', () => {
+  it('AC1: all() อ่านไฟล์ใหม่ทุกครั้ง', async () => {
+    const path = await menuFile({ items: [{ id: 'latte', name: 'ลาเต้', basePriceSatang: 5500, available: true, optionGroups: [] }] });
+    const menu = await JsonMenuRepository.load(path);
+    expect((await menu.all()).map((i) => i.id)).toEqual(['latte']);
+
+    await writeFile(path, JSON.stringify({ items: [{ id: 'espresso', name: 'เอสเพรสโซ่', basePriceSatang: 4500, available: true, optionGroups: [] }] }));
+
+    expect((await menu.all()).map((i) => i.id)).toEqual(['espresso']);
+  });
+});
