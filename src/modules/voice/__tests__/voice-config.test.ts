@@ -49,4 +49,15 @@ describe('loadVoiceConfig', () => {
   it('AC15: GEMINI_API_KEY ว่าง → enabled false', () => {
     expect(loadVoiceConfig({ GEMINI_API_KEY: '' }).enabled).toBe(false);
   });
+
+  it.each(['Production', ' production ', 'prod'])('AC14: APP_ENV=%j นับเป็น production → throw', (appEnv) => {
+    expect(() => loadVoiceConfig({ APP_ENV: appEnv, VOICE_PROVIDER: 'ai-studio', GEMINI_API_KEY: 'k' }))
+      .toThrow('ห้ามใช้ AI Studio กับ production');
+  });
+
+  it('AC15: GEMINI_API_KEY เป็นช่องว่างล้วน → นับว่าไม่มี key, enabled false พร้อม disabledReason', () => {
+    const config = loadVoiceConfig({ GEMINI_API_KEY: '   ' });
+    expect(config.enabled).toBe(false);
+    expect(config.disabledReason).toBe('ไม่มี GEMINI_API_KEY');
+  });
 });

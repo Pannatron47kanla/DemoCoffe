@@ -9,12 +9,14 @@ export interface VoiceConfig {
 
 // อ่านเฉพาะ env ที่ส่งเข้ามา ไม่แตะ process.env ไม่ทำ I/O ไม่ log; ตั้งผิด → throw
 export function loadVoiceConfig(env: Record<string, string | undefined>): VoiceConfig {
-  const appEnv = env.APP_ENV ?? 'development';
+  // ตัดช่องว่างและไม่สนตัวพิมพ์ใหญ่เล็ก; ว่างหรือไม่ตั้ง = development (R9)
+  const appEnv = env.APP_ENV?.trim().toLowerCase() || 'development';
+  const isProduction = appEnv === 'production' || appEnv === 'prod';
   const provider = env.VOICE_PROVIDER ?? 'ai-studio';
   const enabledFlag = env.VOICE_ENABLED ?? 'true';
 
   // AC14: เช็กก่อนทุกอย่าง แม้ไม่มี key ก็ต้องไม่เริ่ม
-  if (provider === 'ai-studio' && appEnv === 'production') {
+  if (provider === 'ai-studio' && isProduction) {
     throw new Error('ห้ามใช้ AI Studio กับ production: ตั้ง VOICE_PROVIDER เป็นผู้ให้บริการที่ผ่านการอนุมัติ');
   }
   if (provider === 'vertex') throw new Error('VOICE_PROVIDER=vertex ยังไม่รองรับ');
@@ -26,7 +28,7 @@ export function loadVoiceConfig(env: Record<string, string | undefined>): VoiceC
   const config: VoiceConfig = {
     enabled: enabledFlag === 'true',
     model: env.VOICE_MODEL ?? 'gemini-3.8-live',
-    apiKey: env.GEMINI_API_KEY,
+    apiKey: env.GEMINI_API_KEY?.trim(),
     kioskId: env.KIOSK_ID ?? 'kiosk-1',
     consentPath: env.VOICE_CONSENT_PATH ?? 'data/voice-consent.json',
   };
