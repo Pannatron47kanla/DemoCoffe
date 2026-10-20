@@ -65,4 +65,11 @@ describe('Cart', () => {
     expect(cart.lines).toEqual([]);
     expect(cart.total.satang).toBe(0);
   });
+
+  it('AC7 (UC-02): ensureOpen หลังไม่ได้แก้ไขครบ 15 นาที → CART_EXPIRED', () => {
+    const cart = Cart.start('cart-1', T0);
+
+    expect(() => cart.ensureOpen(new Date('2026-10-19T02:44:59Z'))).not.toThrow();
+    expect(() => cart.ensureOpen(new Date('2026-10-19T02:45:00Z'))).toThrowError(expect.objectContaining({ code: 'CART_EXPIRED' }));
+  });
 });

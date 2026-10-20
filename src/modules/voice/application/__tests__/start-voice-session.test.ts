@@ -12,6 +12,7 @@ describe('StartVoiceSession', () => {
   let consentTexts: FakeConsentTexts;
   let gateway: FakeVoiceGateway;
   let clock: ReturnType<typeof fixedClock>;
+  let carts: FakeCartAvailability;
   let start: StartVoiceSession;
 
   beforeEach(() => {
@@ -19,8 +20,9 @@ describe('StartVoiceSession', () => {
     consentTexts = new FakeConsentTexts();
     gateway = new FakeVoiceGateway();
     clock = fixedClock('2026-10-20T02:30:00Z');
+    carts = new FakeCartAvailability();
     start = new StartVoiceSession({
-      sessions, carts: new FakeCartAvailability(), consentTexts, gateway, clock, ids: sequentialIds(), kioskId: 'kiosk-1',
+      sessions, carts, consentTexts, gateway, clock, ids: sequentialIds(), kioskId: 'kiosk-1',
     });
   });
 
@@ -61,5 +63,14 @@ describe('StartVoiceSession', () => {
     expect(second.session.consentTextVersion).toBe('voice-demo-v1');
     expect(sessions.count()).toBe(1);
     expect(sessions.addCalls).toBe(1); // กดซ้ำต้องไม่พยายามบันทึกความยินยอมอีก
+  });
+
+  it('AC7: CartAvailability ปฏิเสธ CART_EXPIRED → ไม่มีบันทึก ไม่ขอโทเคน', async () => {
+    carts.rejectWith = 'CART_EXPIRED';
+
+    await expect(start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' })).rejects.toMatchObject({ code: 'CART_EXPIRED' });
+
+    expect(sessions.count()).toBe(0);
+    expect(gateway.calls.length).toBe(0);
   });
 });
