@@ -228,9 +228,10 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
     startTokenRef.current += 1;
     startingRef.current = null;
     setVoiceConnecting(false);
-    voiceRef.current?.close();
-    voiceRef.current = null;
+    const link = voiceRef.current;
+    voiceRef.current = null; // ปล่อยก่อนปิด: onClose ที่ถูกเรียกซ้อนใน close() จะไม่ใช่เซสชันปัจจุบันแล้ว
     setVoiceOn(false);
+    link?.close();
   }
 
   function goConfirm() {

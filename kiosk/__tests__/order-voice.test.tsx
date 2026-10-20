@@ -375,4 +375,19 @@ describe('UC-04 voice review fixes', () => {
     expect(await screen.findByText('หมายเลขคิวของคุณ')).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
   });
+
+  it('AC22: close ที่เรียก onClose ซ้อนทันที ไม่ทำให้หยุดเสียงซ้อน', async () => {
+    const fake = fakeVoiceLink();
+    const connect = fake.link.connect;
+    let closes = 0;
+    fake.link.connect = async (c, h) => {
+      const s = await connect(c, h);
+      return { ...s, close: () => { closes += 1; h.onClose('closed'); } };
+    };
+    const { user } = await voiceOrdering(voiceApi(), fake);
+    await user.click(screen.getByRole('button', { name: '⏹ หยุดเสียง' }));
+
+    expect(closes).toBe(1);
+    expect(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' })).toBeTruthy();
+  });
 });
