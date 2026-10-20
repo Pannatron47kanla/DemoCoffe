@@ -43,4 +43,17 @@ describe('voice HTTP routes', () => {
     expect(res.body.connection.startBefore).toBe('2026-10-20T02:31:00.000Z');
     expectMatchesSpec('post', '/voice/sessions', res);
   });
+
+  it('AC4: POST /voice/sessions ครั้งที่สองตอบ 200 ตาม spec', async () => {
+    const body = { cartId: '7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60', consentTextVersion: 'voice-demo-v1' };
+    const first = await request(app).post('/voice/sessions').send(body);
+
+    const res = await request(app).post('/voice/sessions').send(body);
+
+    expect(first.status).toBe(201);
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(first.body.id);
+    expect(res.body.connection.token).not.toBe(first.body.connection.token);
+    expectMatchesSpec('post', '/voice/sessions', res);
+  });
 });

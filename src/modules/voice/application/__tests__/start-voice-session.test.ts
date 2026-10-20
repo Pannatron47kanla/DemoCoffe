@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fixedClock } from '../../../../shared/clock';
 import { sequentialIds } from '../../../../shared/ids';
+import { VoiceConsentText } from '../../domain/voice-consent-text';
 import { StartVoiceSession } from '../start-voice-session';
 import { FakeCartAvailability, FakeConsentTexts, FakeVoiceGateway, InMemoryVoiceSessions } from './fakes';
 
@@ -8,16 +9,18 @@ const CART_ID = '00000000-0000-4000-8000-0000000000c1';
 
 describe('StartVoiceSession', () => {
   let sessions: InMemoryVoiceSessions;
+  let consentTexts: FakeConsentTexts;
   let gateway: FakeVoiceGateway;
   let clock: ReturnType<typeof fixedClock>;
   let start: StartVoiceSession;
 
   beforeEach(() => {
     sessions = new InMemoryVoiceSessions();
+    consentTexts = new FakeConsentTexts();
     gateway = new FakeVoiceGateway();
     clock = fixedClock('2026-10-20T02:30:00Z');
     start = new StartVoiceSession({
-      sessions, carts: new FakeCartAvailability(), consentTexts: new FakeConsentTexts(), gateway, clock, ids: sequentialIds(), kioskId: 'kiosk-1',
+      sessions, carts: new FakeCartAvailability(), consentTexts, gateway, clock, ids: sequentialIds(), kioskId: 'kiosk-1',
     });
   });
 
@@ -30,5 +33,31 @@ describe('StartVoiceSession', () => {
     expect(result.connection.model).toBe('gemini-3.8-live');
     expect(result.connection.startBefore).toEqual(new Date('2026-10-20T02:31:00Z'));
     expect(gateway.calls).toEqual([new Date('2026-10-20T02:30:00Z')]);
+  });
+
+  it('AC4: ตะกร้ามีเซสชันแล้ว ได้เซสชันเดิม ข้อมูลเชื่อมต่อใหม่ ไม่มีบันทึกเพิ่ม', async () => {
+    const first = await start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' });
+    clock.advance(5 * 60_000);
+
+    const second = await start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' });
+
+    expect(second.created).toBe(false);
+    expect(second.session.id).toBe(first.session.id);
+    expect(second.session.consentedAt).toEqual(new Date('2026-10-20T02:30:00Z'));
+    expect(second.connection.token).not.toBe(first.connection.token);
+    expect(second.connection.startBefore).toEqual(new Date('2026-10-20T02:36:00Z'));
+    expect(sessions.count()).toBe(1);
+  });
+
+  it('AC4: ข้อความเปลี่ยนเป็น voice-demo-v2 หลังยินยอมแล้ว กดซ้ำยังได้เซสชันเดิม', async () => {
+    const first = await start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' });
+    consentTexts.text = VoiceConsentText.of('voice-demo-v2', 'ข้อความใหม่');
+
+    const second = await start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' });
+
+    expect(second.created).toBe(false);
+    expect(second.session.id).toBe(first.session.id);
+    expect(second.session.consentTextVersion).toBe('voice-demo-v1');
+    expect(sessions.count()).toBe(1);
   });
 });
