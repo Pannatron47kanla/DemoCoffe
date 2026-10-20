@@ -4,7 +4,7 @@ import { DomainError } from '../../../../shared/domain-error';
 import type { VoiceSessionRepository } from '../../domain/repositories';
 import { VoiceSession, type VoiceSessionState } from '../../domain/voice-session';
 import type { VoiceMenuItem } from '../../domain/voice-menu';
-import type { CartAvailability, ConsentTexts, VoiceGateway, VoiceMenu, VoiceSetup } from '../ports';
+import type { CartAvailability, CartSnapshot, ConsentTexts, VoiceCartOperations, VoiceGateway, VoiceMenu, VoiceSetup } from '../ports';
 
 export class FakeConsentTexts implements ConsentTexts {
   text = VoiceConsentText.of('voice-demo-v1', 'เสียงของคุณจะถูกส่งไปยัง Google (ข้อความทดสอบ)');
@@ -39,6 +39,11 @@ export class InMemoryVoiceSessions implements VoiceSessionRepository {
     return state ? VoiceSession.restore(structuredClone(state)) : null;
   }
 
+  async findById(id: string): Promise<VoiceSession | null> {
+    const state = [...this.byCart.values()].find((s) => s.id === id);
+    return state ? VoiceSession.restore(structuredClone(state)) : null;
+  }
+
   async add(session: VoiceSession): Promise<{ session: VoiceSession; created: boolean }> {
     this.addCalls += 1;
     // เช็กและเขียนในจังหวะเดียว (ไม่ await คั่น) เลียนแบบ ON CONFLICT ของ DB (AC13)
@@ -67,5 +72,31 @@ export class FakeVoiceMenu implements VoiceMenu {
   ];
   async current(): Promise<VoiceMenuItem[]> {
     return this.items;
+  }
+}
+
+export class FakeVoiceCartOperations implements VoiceCartOperations {
+  calls: { op: string; cartId: string; args: unknown[] }[] = [];
+  rejectWith?: string;
+
+  private async record(op: string, cartId: string, args: unknown[]): Promise<CartSnapshot> {
+    this.calls.push({ op, cartId, args });
+    if (this.rejectWith) throw new DomainError(this.rejectWith);
+    return { id: cartId };
+  }
+  add(cartId: string, input: { menuItemId: string; optionChoiceIds: string[]; quantity: number }) {
+    return this.record('add', cartId, [input]);
+  }
+  changeQuantity(cartId: string, lineId: string, quantity: number) {
+    return this.record('changeQuantity', cartId, [lineId, quantity]);
+  }
+  remove(cartId: string, lineId: string) {
+    return this.record('remove', cartId, [lineId]);
+  }
+  view(cartId: string) {
+    return this.record('view', cartId, []);
+  }
+  readyForCheckout(cartId: string) {
+    return this.record('readyForCheckout', cartId, []);
   }
 }

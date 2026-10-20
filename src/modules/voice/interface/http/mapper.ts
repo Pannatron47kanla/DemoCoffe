@@ -1,9 +1,14 @@
+import type { CartSnapshot } from '../../application/ports';
 import type { VoiceConnection } from '../../domain/voice-connection';
 import type { VoiceConsentText } from '../../domain/voice-consent-text';
 import type { VoiceSession } from '../../domain/voice-session';
 
 export function toConsentTextJson(consent: VoiceConsentText) {
   return { version: consent.version, text: consent.text };
+}
+
+export function toFunctionResultJson(result: { action: string; cart: CartSnapshot }) {
+  return { action: result.action, cart: result.cart };
 }
 
 export function toVoiceSessionJson(session: VoiceSession, connection: VoiceConnection) {

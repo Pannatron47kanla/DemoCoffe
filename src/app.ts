@@ -19,6 +19,7 @@ export async function createApp({ pool, menuPath, clock, ids, voice }: { pool: P
     carts: ordering.cartAvailability,
     consentTexts: new JsonVoiceConsentTexts(voice.consentPath),
     gateway: voice.gateway,
+    cartOperations: ordering.voiceCart,
     menu: { current: () => menuRepository.all() },
     clock,
     ids,

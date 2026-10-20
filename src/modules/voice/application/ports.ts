@@ -19,6 +19,16 @@ export interface VoiceGateway {
   issueConnection(now: Date, setup: VoiceSetup): Promise<VoiceConnection>; // ไม่สำเร็จ → VOICE_UNAVAILABLE
 }
 
+export type CartSnapshot = Record<string, unknown>; // JSON ตาม schema Cart ที่ ordering map ให้ voice ไม่ตีความ
+
+export interface VoiceCartOperations {
+  add(cartId: string, input: { menuItemId: string; optionChoiceIds: string[]; quantity: number }): Promise<CartSnapshot>;
+  changeQuantity(cartId: string, lineId: string, quantity: number): Promise<CartSnapshot>;
+  remove(cartId: string, lineId: string): Promise<CartSnapshot>;
+  view(cartId: string): Promise<CartSnapshot>;
+  readyForCheckout(cartId: string): Promise<CartSnapshot>; // CART_EMPTY ถ้าว่าง ไม่ยืนยัน
+}
+
 export interface CartAvailability {
   assertOpen(cartId: string): Promise<void>; // CART_NOT_FOUND | CART_EXPIRED | CART_ALREADY_CHECKED_OUT
 }

@@ -7,6 +7,14 @@ interface Row { id: string; cart_id: string; kiosk_id: string; consent_text_vers
 export class PgVoiceSessionRepository implements VoiceSessionRepository {
   constructor(private readonly pool: Pool) {}
 
+  async findById(id: string): Promise<VoiceSession | null> {
+    const { rows: [row] } = await this.pool.query<Row>(
+      'SELECT id, cart_id, kiosk_id, consent_text_version, consented_at FROM voice_sessions WHERE id = $1',
+      [id],
+    );
+    return row ? toSession(row) : null;
+  }
+
   async findByCartId(cartId: string): Promise<VoiceSession | null> {
     const { rows: [row] } = await this.pool.query<Row>(
       'SELECT id, cart_id, kiosk_id, consent_text_version, consented_at FROM voice_sessions WHERE cart_id = $1',

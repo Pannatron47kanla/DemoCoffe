@@ -6,12 +6,12 @@ import { errorHandler } from '../../../../../shared/http-errors';
 import { fixedClock } from '../../../../../shared/clock';
 import { sequentialIds } from '../../../../../shared/ids';
 import { VoiceConsentText } from '../../../domain/voice-consent-text';
-import { FakeCartAvailability, FakeConsentTexts, FakeVoiceGateway, FakeVoiceMenu, InMemoryVoiceSessions } from '../../../application/__tests__/fakes';
+import { FakeCartAvailability, FakeConsentTexts, FakeVoiceCartOperations, FakeVoiceGateway, FakeVoiceMenu, InMemoryVoiceSessions } from '../../../application/__tests__/fakes';
 import { createVoiceModule } from '../../../module';
 import { unavailableVoiceGateway } from '../../../index';
 import { createOrderingModule } from '../../../../ordering';
 import { FakeMenu, InMemoryOrdering } from '../../../../ordering/application/__tests__/fakes';
-import { americano } from '../../../../ordering/domain/__tests__/menu-fixtures';
+import { americano, latte } from '../../../../ordering/domain/__tests__/menu-fixtures';
 
 describe('voice HTTP routes', () => {
   let consentTexts: FakeConsentTexts;
@@ -28,7 +28,7 @@ describe('voice HTTP routes', () => {
     app = express();
     app.use(express.json());
     app.use(createVoiceModule({
-      sessions, carts, consentTexts, gateway, menu: new FakeVoiceMenu(),
+      sessions, carts, consentTexts, gateway, menu: new FakeVoiceMenu(), cartOperations: new FakeVoiceCartOperations(),
       clock: fixedClock('2026-10-20T02:30:00Z'), ids: sequentialIds(), kioskId: 'kiosk-1',
     }).router);
     app.use(errorHandler);
@@ -182,7 +182,7 @@ describe('voice HTTP routes', () => {
     const ids = sequentialIds();
     const ordering = createOrderingModule({ uow: new InMemoryOrdering(), menu: new FakeMenu([americano]), clock, ids });
     const voice = createVoiceModule({
-      sessions, carts: ordering.cartAvailability, consentTexts, gateway: unavailableVoiceGateway, menu: new FakeVoiceMenu(), clock, ids, kioskId: 'kiosk-1',
+      sessions, carts: ordering.cartAvailability, consentTexts, gateway: unavailableVoiceGateway, menu: new FakeVoiceMenu(), cartOperations: new FakeVoiceCartOperations(), clock, ids, kioskId: 'kiosk-1',
     });
     const offApp = express();
     offApp.use(express.json());
@@ -199,5 +199,33 @@ describe('voice HTTP routes', () => {
     expect(consent.body.code).toBe('VOICE_UNAVAILABLE');
     expect(cart.status).toBe(201);
     expect(sessions.count()).toBe(0);
+  });
+
+  it('AC3: POST /voice/sessions/{id}/function-calls add_to_cart ตอบ 200 ตาม spec', async () => {
+    const clock = fixedClock('2026-10-20T02:30:00Z');
+    const ids = sequentialIds();
+    const ordering = createOrderingModule({ uow: new InMemoryOrdering(), menu: new FakeMenu([latte, americano]), clock, ids });
+    const voice = createVoiceModule({
+      sessions, carts: ordering.cartAvailability, consentTexts, gateway, menu: new FakeVoiceMenu(),
+      cartOperations: ordering.voiceCart, clock, ids, kioskId: 'kiosk-1',
+    });
+    const both = express();
+    both.use(express.json());
+    both.use(ordering.router);
+    both.use(voice.router);
+    both.use(errorHandler);
+    const cart = await request(both).post('/carts');
+    const consent = await request(both).post('/voice/sessions').send({ cartId: cart.body.id, consentTextVersion: 'voice-demo-v1' });
+
+    const res = await request(both)
+      .post(`/voice/sessions/${consent.body.id}/function-calls`)
+      .send({ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: ['size-l', 'milk-oat'], quantity: 2 } });
+
+    expect(res.status).toBe(200);
+    expect(res.body.action).toBe('SHOW_CART');
+    expect(res.body.cart.id).toBe(cart.body.id);
+    expect(res.body.cart.lines[0].quantity).toBe(2);
+    expect(res.body.cart.total.amount).toBe('160.00');
+    expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
   });
 });

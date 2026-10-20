@@ -34,6 +34,21 @@ describe('PgVoiceSessionRepository', () => {
     expect(found?.toState()).toEqual(session.toState());
   });
 
+  it('AC3: findById คืนเซสชันที่บันทึกไว้ และ null ถ้าไม่มี', async () => {
+    await db.pool.query("INSERT INTO carts (id, status, last_activity_at) VALUES ($1, 'OPEN', $2)", [id(2), T0]);
+    const session = VoiceSession.consent({
+      id: id(1), cartId: id(2), kioskId: 'kiosk-1', shownVersion: 'voice-demo-v1',
+      current: VoiceConsentText.of('voice-demo-v1', 'ข้อความทดสอบ'), now: T0,
+    });
+    await repo.add(session);
+
+    const found = await repo.findById(id(1));
+    const missing = await repo.findById(id(9));
+
+    expect(found?.toState()).toEqual(session.toState());
+    expect(missing).toBeNull();
+  });
+
   it('AC13: add สองเซสชันของตะกร้าเดียวพร้อมกัน ได้แถวเดียว ทั้งสองคืนเซสชันเดียวกัน', async () => {
     await db.pool.query("INSERT INTO carts (id, status, last_activity_at) VALUES ($1, 'OPEN', $2)", [id(2), T0]);
     const make = (sessionId: string) => VoiceSession.consent({
