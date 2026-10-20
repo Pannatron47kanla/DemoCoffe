@@ -263,6 +263,25 @@ describe('ordering HTTP routes', () => {
         return a;
       }
 
+      async function placeOrder(custom: express.Express) {
+        const cartId = (await request(custom).post('/carts')).body.id;
+        await request(custom).post(`/carts/${cartId}/lines`).send({ menuItemId: 'latte', optionChoiceIds: ['size-l', 'milk-oat'], quantity: 1 });
+        return request(custom).post(`/carts/${cartId}/checkout`).set('Idempotency-Key', 'k-5');
+      }
+
+      it('AC5: ไม่ตั้ง PUBLIC_BASE_URL ได้ลิงก์ localhost:3000', async () => {
+        const res = await placeOrder(appWith());
+
+        expect(res.body.statusPageUrl).toBe(`http://localhost:3000/q/?order=${res.body.id}`);
+        expectMatchesSpec('post', '/carts/{cartId}/checkout', res);
+      });
+
+      it('AC5: PUBLIC_BASE_URL มี / ท้ายไม่เกิด //', async () => {
+        const res = await placeOrder(appWith('https://demo.example.com/'));
+
+        expect(res.body.statusPageUrl).toBe(`https://demo.example.com/q/?order=${res.body.id}`);
+      });
+
       it('AC4: checkout ตอบ statusPageUrl จาก PUBLIC_BASE_URL ทั้งตอนสร้างและยืนยันซ้ำ', async () => {
         const custom = appWith('https://demo.example.com');
         const cartId = (await request(custom).post('/carts')).body.id;

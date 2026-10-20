@@ -32,7 +32,7 @@ export function toCartJson({ cart, items }: CartView) {
 
 // ลิงก์หน้าสถานะบนมือถือ เป็นเรื่องการแสดงผล ไม่ใช่กฎธุรกิจ
 export function statusPageUrl(baseUrl: string, orderId: string): string {
-  return `${baseUrl}/q/?order=${orderId}`;
+  return `${baseUrl.replace(/\/+$/, '')}/q/?order=${orderId}`;
 }
 
 export function toOrderJson(order: Order, baseUrl: string) {
