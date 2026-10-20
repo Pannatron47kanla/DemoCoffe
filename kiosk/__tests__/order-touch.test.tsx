@@ -50,4 +50,14 @@ describe('สั่งด้วยการแตะ', () => {
     expect(cart.getAllByText('160.00').length).toBeGreaterThan(0);
     expect(screen.queryByRole('dialog')).toBeNull();
   });
+
+  it('AC10: อเมริกาโน่ยังไม่เลือกขนาด แตะใส่ตะกร้าไม่ส่งคำขอและแจ้งให้เลือกขนาด', async () => {
+    const { api, user } = setup();
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: /^อเมริกาโน่/ }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'ใส่ตะกร้า' }));
+
+    expect(api.calls.addLine.length).toBe(0);
+    expect(screen.getByText('กรุณาเลือกขนาด')).toBeTruthy();
+  });
 });

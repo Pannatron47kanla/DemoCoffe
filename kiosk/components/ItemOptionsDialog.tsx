@@ -10,6 +10,7 @@ export function ItemOptionsDialog({ item, onAdd, onClose }: { item: MenuItem; on
   // หนึ่งกลุ่มเลือกได้ไม่เกินหนึ่งตัวเลือก: groupId -> choiceId
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(MIN_QUANTITY);
+  const [missing, setMissing] = useState<string | null>(null);
 
   function toggle(groupId: string, choiceId: string, required: boolean) {
     setPicked((current) => {
@@ -21,6 +22,11 @@ export function ItemOptionsDialog({ item, onAdd, onClose }: { item: MenuItem; on
   }
 
   function submit() {
+    const unpicked = item.optionGroups.find((g) => g.required && !picked[g.id]);
+    if (unpicked) {
+      setMissing(unpicked.name);
+      return;
+    }
     const optionChoiceIds = item.optionGroups.flatMap((g) => (picked[g.id] ? [picked[g.id] as string] : []));
     onAdd({ menuItemId: item.id, optionChoiceIds, quantity });
   }
@@ -41,6 +47,7 @@ export function ItemOptionsDialog({ item, onAdd, onClose }: { item: MenuItem; on
             </div>
           </fieldset>
         ))}
+        {missing ? <p className="error" role="alert">กรุณาเลือก{missing}</p> : null}
         <div className="qty-controls">
           <button type="button" aria-label="−" disabled={quantity <= MIN_QUANTITY} onClick={() => setQuantity(quantity - 1)}>−</button>
           <span>{quantity}</span>
