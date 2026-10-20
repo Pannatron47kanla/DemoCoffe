@@ -2,6 +2,7 @@ import type { Clock } from '../../../shared/clock';
 import type { IdGenerator } from '../../../shared/ids';
 import type { VoiceConnection } from '../domain/voice-connection';
 import type { VoiceSessionRepository } from '../domain/repositories';
+import { assertVoiceAvailable } from '../domain/voice-availability';
 import { VoiceSession } from '../domain/voice-session';
 import type { CartAvailability, ConsentTexts, VoiceGateway } from './ports';
 
@@ -20,6 +21,7 @@ export class StartVoiceSession {
 
   async execute(input: { cartId: string; consentTextVersion: string }): Promise<{ session: VoiceSession; connection: VoiceConnection; created: boolean }> {
     const { sessions, carts, consentTexts, gateway, clock, ids, kioskId } = this.deps;
+    assertVoiceAvailable(gateway.available); // ปิดเสียงต้องหยุดก่อนแตะตะกร้า (AC10)
     const now = clock.now();
 
     await carts.assertOpen(input.cartId);

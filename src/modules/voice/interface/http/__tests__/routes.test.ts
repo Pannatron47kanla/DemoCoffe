@@ -139,4 +139,26 @@ describe('voice HTTP routes', () => {
     expect(sessions.count()).toBe(0);
     expect(gateway.calls.length).toBe(0);
   });
+
+  it('AC10: ปิดเสียง GET /voice/consent-text ตอบ 503 VOICE_UNAVAILABLE', async () => {
+    gateway.available = false;
+
+    const res = await request(app).get('/voice/consent-text');
+
+    expect(res.status).toBe(503);
+    expect(res.body.code).toBe('VOICE_UNAVAILABLE');
+    expectMatchesSpec('get', '/voice/consent-text', res);
+  });
+
+  it('AC10: ปิดเสียง POST /voice/sessions ตอบ 503 ไม่มีบันทึก', async () => {
+    gateway.available = false;
+
+    const res = await request(app).post('/voice/sessions').send({ cartId: CART, consentTextVersion: 'voice-demo-v1' });
+
+    expect(res.status).toBe(503);
+    expect(res.body.code).toBe('VOICE_UNAVAILABLE');
+    expectMatchesSpec('post', '/voice/sessions', res);
+    expect(sessions.count()).toBe(0);
+    expect(gateway.calls.length).toBe(0);
+  });
 });

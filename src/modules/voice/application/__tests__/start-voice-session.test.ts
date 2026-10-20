@@ -85,4 +85,13 @@ describe('StartVoiceSession', () => {
     expect(sessions.count()).toBe(0);
     expect(gateway.calls.length).toBe(0);
   });
+
+  it('AC10: ปิดเสียง → VOICE_UNAVAILABLE ไม่มีบันทึก ไม่ขอโทเคน', async () => {
+    gateway.available = false;
+
+    await expect(start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' })).rejects.toMatchObject({ code: 'VOICE_UNAVAILABLE' });
+
+    expect(sessions.count()).toBe(0);
+    expect(gateway.calls.length).toBe(0);
+  });
 });
