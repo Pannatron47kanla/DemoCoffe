@@ -7,6 +7,7 @@ import { EXPIRED_NOTICE_MS, IDLE_PROMPT_MS, QUEUE_RETURN_MS } from '../lib/timin
 import type { FunctionCall, VoiceLink, VoiceLinkSession } from '../lib/voice-link';
 import { relayFunctionCalls } from '../lib/voice-relay';
 import { useIdle } from '../lib/use-idle';
+import { CaptionBox, type Caption } from './CaptionBox';
 import { ConsentSheet } from './ConsentSheet';
 import { ConfirmScreen } from './ConfirmScreen';
 import { IdlePrompt } from './IdlePrompt';
@@ -15,9 +16,17 @@ import { OrderScreen } from './OrderScreen';
 import { QueueScreen } from './QueueScreen';
 import { WelcomeScreen } from './WelcomeScreen';
 
+const MAX_CAPTIONS = 6;
 const VOICE_UNAVAILABLE = 'ใช้เสียงไม่ได้ตอนนี้ สั่งด้วยการแตะได้เลย';
 
 type Screen = 'welcome' | 'order' | 'confirm' | 'queue';
+
+// ข้อความต่อเนื่องของคนเดิมต่อท้ายบรรทัดล่าสุด; เก็บแค่ไม่กี่บรรทัดล่าสุด
+function appendCaption(prev: Caption[], role: Caption['role'], text: string): Caption[] {
+  const last = prev[prev.length - 1];
+  const next = last?.role === role ? [...prev.slice(0, -1), { role, text: last.text + text }] : [...prev, { role, text }];
+  return next.slice(-MAX_CAPTIONS);
+}
 
 export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID() }: { api: KioskApi; voice: VoiceLink; newIdempotencyKey?: () => string }) {
   const [screen, setScreen] = useState<Screen>('welcome');
@@ -36,6 +45,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
   const [voiceOn, setVoiceOn] = useState(false);
   const voiceRef = useRef<VoiceLinkSession | null>(null);
   const consentedRef = useRef<{ cartId: string; version: string } | null>(null); // ตะกร้านี้ยินยอมแล้ว ไม่ถามซ้ำ
+  const [captions, setCaptions] = useState<Caption[]>([]);
   const screenRef = useRef<Screen>('welcome');
   screenRef.current = screen;
   const [consent, setConsent] = useState<{ version: string; text: string } | null>(null);
@@ -54,6 +64,8 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
 
   // กลับหน้าต้อนรับ: ล้างตะกร้า ออเดอร์ error และรายการที่มีปัญหา
   function resetToWelcome() {
+    stopVoice();
+    setCaptions([]);
     setExpired(false);
     setIdlePrompt(false);
     setError(null);
@@ -159,7 +171,9 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
       onFunctionCalls: (calls) => {
         chain = chain.then(() => relay(session.id, calls, mine)).catch(() => voiceFailed(mine));
       },
-      onTranscript: () => {},
+      onTranscript: (role, text) => {
+        if (mine()) setCaptions((prev) => appendCaption(prev, role, text));
+      },
       onClose: (reason) => {
         if (!mine()) return;
         if (reason === 'error') voiceFailed(mine);
@@ -239,6 +253,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
       ) : (
         <OrderScreen menu={menu} cart={cart} onSelect={setSelected} onChangeQuantity={changeQuantity} onRemove={remove} onConfirm={goConfirm} problemLineIds={problemLineIds} voiceOn={voiceOn} onVoice={toggleVoice} />
       )}
+      {screen === 'order' || screen === 'confirm' ? <CaptionBox captions={captions} /> : null}
       {idlePrompt ? <IdlePrompt onStay={() => setIdlePrompt(false)} onTimeout={resetToWelcome} /> : null}
       {consent ? <ConsentSheet text={consent.text} onAccept={acceptConsent} onDecline={() => setConsent(null)} /> : null}
       {selected ? <ItemOptionsDialog item={selected} onAdd={add} onClose={() => setSelected(null)} /> : null}
