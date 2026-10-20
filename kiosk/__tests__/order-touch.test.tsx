@@ -2,6 +2,7 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
+import { ApiError } from '../lib/api';
 import { Kiosk } from '../components/Kiosk';
 import { fakeApi } from './support/fake-api';
 import { fakeVoiceLink } from './support/fake-voice-link';
@@ -91,5 +92,35 @@ describe('สั่งด้วยการแตะ', () => {
     await user.click(minus);
     expect(minus.disabled).toBe(true);
     expect(api.calls.changeQuantity.length).toBe(0);
+  });
+
+  it('AC12: API ตอบ 409 CART_LIMIT_REACHED แสดงข้อความของ API ตะกร้าบนจอไม่เปลี่ยน', async () => {
+    const { api, user } = setup({
+      addLine: async () => {
+        throw new ApiError(409, { code: 'CART_LIMIT_REACHED', message: 'ตะกร้ามีได้ไม่เกิน 20 แก้ว' });
+      },
+    });
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: /^เอสเพรสโซ่/ }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'ใส่ตะกร้า' }));
+
+    expect(await screen.findByText('ตะกร้ามีได้ไม่เกิน 20 แก้ว')).toBeTruthy();
+    expect(api.calls.addLine.length).toBe(1);
+    expect(within(screen.getByLabelText('ตะกร้า')).queryByText('เอสเพรสโซ่')).toBeNull();
+  });
+
+  it('AC12: error ที่ไม่ใช่ ApiError แสดงระบบขัดข้อง', async () => {
+    const { user } = setup({
+      changeQuantity: async () => {
+        throw new TypeError('Failed to fetch');
+      },
+    });
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: /^เอสเพรสโซ่/ }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'ใส่ตะกร้า' }));
+    await user.click(within(await screen.findByLabelText('ตะกร้า')).getByRole('button', { name: '+' }));
+
+    expect(await screen.findByText('ระบบขัดข้อง กรุณาติดต่อพนักงาน')).toBeTruthy();
+    expect(within(screen.getByLabelText('ตะกร้า')).getByText('x1')).toBeTruthy();
   });
 });
