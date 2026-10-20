@@ -75,9 +75,9 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
     return () => clearTimeout(timer);
   }, [screen]);
 
-  // ไม่แตะนาน: ถามว่ายังสั่งอยู่ไหม (หน้าสั่งและหน้ายืนยัน) enabled จะถูกปิดเมื่อเปิดเสียงในงานถัดไป
+  // ไม่แตะนาน: ถามว่ายังสั่งอยู่ไหม (หน้าสั่งและหน้ายืนยัน) ปิดนับเมื่อเปิดเสียง (AC27)
   const idleScreen = screen === 'order' || screen === 'confirm';
-  const idleEnabled = idleScreen && !idlePrompt;
+  const idleEnabled = idleScreen && !idlePrompt && !voiceOn;
   // ออกจากหน้าสั่ง/ยืนยัน (เช่นยืนยันสั่งสำเร็จ) ต้องล้างคำถามที่ค้าง ไม่ให้ไปตัดหน้าคิว
   useEffect(() => {
     if (!idleScreen) setIdlePrompt(false);

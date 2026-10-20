@@ -104,4 +104,24 @@ describe('UC-04 voice session', () => {
     expect(fake.responses[0]).toEqual([{ id: 'fc1', name: 'add_to_cart', response: body }]);
     expect(screen.getAllByText(/160\.00/).length).toBeGreaterThan(0);
   });
+
+  it('AC27: ไม่ถามระหว่างเปิดเสียง', async () => {
+    (globalThis as { jest?: unknown }).jest = { advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms) };
+    try {
+      vi.useFakeTimers();
+      render(<Kiosk api={voiceApi()} voice={fakeVoiceLink().link} />);
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+      await user.click(await screen.findByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+      await user.click(await screen.findByRole('button', { name: 'ยินยอม' }));
+      await screen.findByRole('button', { name: '⏹ หยุดเสียง' });
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(150_000); });
+      expect(screen.queryByText('ยังสั่งอยู่ไหม')).toBeNull();
+      expect(screen.getByRole('button', { name: '⏹ หยุดเสียง' })).toBeTruthy();
+    } finally {
+      delete (globalThis as { jest?: unknown }).jest;
+      vi.useRealTimers();
+    }
+  });
 });
