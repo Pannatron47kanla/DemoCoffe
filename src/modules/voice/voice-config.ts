@@ -31,5 +31,9 @@ export function loadVoiceConfig(env: Record<string, string | undefined>): VoiceC
     consentPath: env.VOICE_CONSENT_PATH ?? 'data/voice-consent.json',
   };
   if (!config.enabled) config.disabledReason = 'VOICE_ENABLED=false';
+  else if (!config.apiKey) { // AC15: ไม่มี key ก็เริ่มได้ แต่ปิดเสียง สั่งด้วยการสัมผัสยังใช้ได้
+    config.enabled = false;
+    config.disabledReason = 'ไม่มี GEMINI_API_KEY';
+  }
   return config;
 }

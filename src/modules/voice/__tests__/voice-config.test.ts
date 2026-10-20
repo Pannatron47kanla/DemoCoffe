@@ -39,4 +39,14 @@ describe('loadVoiceConfig', () => {
     expect(config.enabled).toBe(false);
     expect(config.disabledReason).toBeTruthy();
   });
+
+  it('AC15: ai-studio แต่ไม่มี GEMINI_API_KEY → เริ่มได้ แต่ enabled false พร้อม disabledReason', () => {
+    const config = loadVoiceConfig({ VOICE_PROVIDER: 'ai-studio' });
+    expect(config.enabled).toBe(false);
+    expect(config.disabledReason).toBe('ไม่มี GEMINI_API_KEY');
+  });
+
+  it('AC15: GEMINI_API_KEY ว่าง → enabled false', () => {
+    expect(loadVoiceConfig({ GEMINI_API_KEY: '' }).enabled).toBe(false);
+  });
 });

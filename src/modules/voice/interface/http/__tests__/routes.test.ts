@@ -8,6 +8,10 @@ import { sequentialIds } from '../../../../../shared/ids';
 import { VoiceConsentText } from '../../../domain/voice-consent-text';
 import { FakeCartAvailability, FakeConsentTexts, FakeVoiceGateway, InMemoryVoiceSessions } from '../../../application/__tests__/fakes';
 import { createVoiceModule } from '../../../module';
+import { unavailableVoiceGateway } from '../../../index';
+import { createOrderingModule } from '../../../../ordering';
+import { FakeMenu, InMemoryOrdering } from '../../../../ordering/application/__tests__/fakes';
+import { americano } from '../../../../ordering/domain/__tests__/menu-fixtures';
 
 describe('voice HTTP routes', () => {
   let consentTexts: FakeConsentTexts;
@@ -170,5 +174,30 @@ describe('voice HTTP routes', () => {
     expect(res.status).toBe(503);
     expect(res.body.code).toBe('VOICE_UNAVAILABLE');
     expectMatchesSpec('post', '/voice/sessions', res);
+  });
+
+  // ไม่ใช้ createApp เพราะต้องมี DB; ต่อ router ordering (in-memory) กับ voice ที่ใช้ unavailableVoiceGateway
+  it('AC15: ใช้ unavailableVoiceGateway ขอข้อความยินยอมหรือยินยอมได้ 503 แต่ POST /carts ยังได้ 201', async () => {
+    const clock = fixedClock('2026-10-20T02:30:00Z');
+    const ids = sequentialIds();
+    const ordering = createOrderingModule({ uow: new InMemoryOrdering(), menu: new FakeMenu([americano]), clock, ids });
+    const voice = createVoiceModule({
+      sessions, carts: ordering.cartAvailability, consentTexts, gateway: unavailableVoiceGateway, clock, ids, kioskId: 'kiosk-1',
+    });
+    const offApp = express();
+    offApp.use(express.json());
+    offApp.use(ordering.router);
+    offApp.use(voice.router);
+    offApp.use(errorHandler);
+
+    const consentText = await request(offApp).get('/voice/consent-text');
+    const consent = await request(offApp).post('/voice/sessions').send({ cartId: CART, consentTextVersion: 'voice-demo-v1' });
+    const cart = await request(offApp).post('/carts');
+
+    expect(consentText.status).toBe(503);
+    expect(consent.status).toBe(503);
+    expect(consent.body.code).toBe('VOICE_UNAVAILABLE');
+    expect(cart.status).toBe(201);
+    expect(sessions.count()).toBe(0);
   });
 });

@@ -22,8 +22,8 @@ try {
 }
 if (!voiceConfig.enabled) console.warn(`voice ปิดอยู่: ${voiceConfig.disabledReason}`); // ไม่ log API key
 
-const gateway = voiceConfig.enabled
-  ? new AiStudioVoiceGateway({ tokens: new GoogleGenAI({ apiKey: voiceConfig.apiKey ?? '' }).authTokens, model: voiceConfig.model })
+const gateway = voiceConfig.enabled && voiceConfig.apiKey
+  ? new AiStudioVoiceGateway({ tokens: new GoogleGenAI({ apiKey: voiceConfig.apiKey }).authTokens, model: voiceConfig.model })
   : unavailableVoiceGateway;
 
 const app = await createApp({
