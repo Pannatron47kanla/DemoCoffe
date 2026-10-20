@@ -73,4 +73,17 @@ describe('UC-04 idle prompt', () => {
     await advance(1);
     expect(screen.getByText('ยังสั่งอยู่ไหม')).toBeTruthy();
   });
+
+  it('AC27: แตะที่ใดก็ได้ระหว่างคำถามยังสั่งอยู่ไหมถือว่ายังสั่งอยู่', async () => {
+    await orderingWithCart();
+    await advance(120_000);
+    expect(screen.getByText('ยังสั่งอยู่ไหม')).toBeTruthy();
+
+    await act(async () => { fireEvent.pointerDown(screen.getByRole('alertdialog')); });
+    expect(screen.queryByText('ยังสั่งอยู่ไหม')).toBeNull();
+
+    await advance(15_000);
+    expect(screen.queryByRole('button', { name: 'เริ่มสั่ง' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'ยืนยัน' })).toBeTruthy();
+  });
 });
