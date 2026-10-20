@@ -52,6 +52,24 @@ describe('ยืนยันออเดอร์', () => {
     expect(document.querySelector('svg title')?.textContent).toBe(statusPageUrl);
   });
 
+  it('AC23: กดยืนยันสั่งซ้ำหลังเน็ตล้มในหน้าเดิมใช้ key เดิม', async () => {
+    let n = 0;
+    const { api, user } = setup({
+      checkout: async () => {
+        n += 1;
+        if (n === 1) throw new TypeError('network');
+        return order;
+      },
+    });
+    await toConfirm(user);
+    await user.click(await screen.findByRole('button', { name: 'ยืนยันสั่ง' }));
+    await screen.findByRole('alert');
+    await user.click(screen.getByRole('button', { name: 'ยืนยันสั่ง' }));
+
+    expect(await screen.findByText('หมายเลขคิวของคุณ')).toBeTruthy();
+    expect(api.calls.checkout).toEqual([['cart-1', 'k-1'], ['cart-1', 'k-1']]);
+  });
+
   const repriced: Cart = {
     id: 'cart-1', status: 'OPEN', expiresAt: '2026-10-19T02:46:00Z', totalCups: 1,
     total: { amount: '99.00', currency: 'THB' },

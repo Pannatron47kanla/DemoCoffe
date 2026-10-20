@@ -20,3 +20,8 @@ button:disabled { opacity: 0.45; }
 .choices button[aria-pressed='true'] { background: #6b4226; color: #fff; }
 .qty-controls { display: flex; gap: 12px; align-items: center; }
 .banner { position: fixed; top: 0; left: 0; right: 0; z-index: 10; margin: 0; padding: 16px 24px; background: #fde7ea; }
+
+[data-problem="true"] {
+  border: 2px solid #c62828;
+  background: #ffebee;
+}
