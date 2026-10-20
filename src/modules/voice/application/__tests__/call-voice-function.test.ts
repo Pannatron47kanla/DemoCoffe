@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { VoiceConsentText } from '../../domain/voice-consent-text';
 import { VoiceSession } from '../../domain/voice-session';
 import { CallVoiceFunction } from '../call-voice-function';
-import { FakeVoiceCartOperations, InMemoryVoiceSessions } from './fakes';
+import { VOICE_FUNCTION_NAMES, type VoiceFunctionCall } from '../../domain/voice-function-call';
+import { FakeCartAvailability, FakeVoiceCartOperations, InMemoryVoiceSessions } from './fakes';
 
 const SESSION_ID = '00000000-0000-4000-8000-000000000001';
 const CART_ID = '7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60';
@@ -10,16 +11,18 @@ const CART_ID = '7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60';
 describe('CallVoiceFunction', () => {
   let sessions: InMemoryVoiceSessions;
   let cartOperations: FakeVoiceCartOperations;
+  let carts: FakeCartAvailability;
   let useCase: CallVoiceFunction;
 
   beforeEach(async () => {
     sessions = new InMemoryVoiceSessions();
     cartOperations = new FakeVoiceCartOperations();
+    carts = new FakeCartAvailability();
     await sessions.add(VoiceSession.consent({
       id: SESSION_ID, cartId: CART_ID, kioskId: 'kiosk-1', shownVersion: 'voice-demo-v1',
       current: VoiceConsentText.of('voice-demo-v1', 'ข้อความทดสอบ'), now: new Date('2026-10-20T02:30:00Z'),
     }));
-    useCase = new CallVoiceFunction({ sessions, cartOperations });
+    useCase = new CallVoiceFunction({ sessions, cartOperations, carts });
   });
 
   it("AC3: add_to_cart เรียก cartOperations.add ด้วย cartId ของเซสชัน", async () => {
@@ -66,4 +69,24 @@ describe('CallVoiceFunction', () => {
     expect(result.action).toBe('SHOW_CHECKOUT');
     expect(result.cart).toEqual({ id: CART_ID });
   });
+
+  const CALLS: Record<(typeof VOICE_FUNCTION_NAMES)[number], VoiceFunctionCall> = {
+    add_to_cart: { name: 'add_to_cart', menuItemId: 'latte', optionChoiceIds: [], quantity: 1 },
+    change_quantity: { name: 'change_quantity', lineId: 'line-1', quantity: 2 },
+    remove_from_cart: { name: 'remove_from_cart', lineId: 'line-1' },
+    view_cart: { name: 'view_cart' },
+    request_checkout: { name: 'request_checkout' },
+  };
+
+  // R8: ตะกร้าหมดอายุหรือยืนยันแล้ว ทุกฟังก์ชันต้องหยุดก่อนแตะตะกร้า
+  it.each(VOICE_FUNCTION_NAMES.flatMap((name) => ['CART_EXPIRED', 'CART_ALREADY_CHECKED_OUT'].map((code) => [name, code] as const)))(
+    'AC15: %s กับตะกร้าที่ CartAvailability ปฏิเสธ %s → ไม่เรียก cartOperations',
+    async (name, code) => {
+      carts.rejectWith = code;
+
+      await expect(useCase.execute({ sessionId: SESSION_ID, call: CALLS[name] })).rejects.toMatchObject({ code });
+
+      expect(cartOperations.calls).toEqual([]);
+    },
+  );
 });

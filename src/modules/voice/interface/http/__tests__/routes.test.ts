@@ -436,4 +436,29 @@ describe('voice HTTP routes', () => {
     expectMatchesSpec('post', FN_CALLS, res);
     expect(findById).not.toHaveBeenCalled(); // id ผิดรูปแบบไม่ถึง DB (uuid cast จะ error)
   });
+
+  it('AC15: view_cart หลังตะกร้าไม่ได้แก้ไขครบ 15 นาที → 409 CART_EXPIRED', async () => {
+    const clock = fixedClock('2026-10-20T02:30:00Z');
+    const { call } = await composeWithConsent(clock);
+    clock.advance(15 * 60_000);
+
+    const res = await call({ name: 'view_cart', args: {} });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('CART_EXPIRED');
+    expectMatchesSpec('post', FN_CALLS, res);
+  });
+
+  it('AC15: หลังยืนยันออเดอร์ → 409 CART_ALREADY_CHECKED_OUT', async () => {
+    const { both, cart, call } = await composeWithConsent();
+    await call({ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: ['size-l'], quantity: 1 } });
+    const checkout = await request(both).post(`/carts/${cart.id}/checkout`).set('Idempotency-Key', 'k-15');
+    expect(checkout.status).toBe(201);
+
+    const res = await call({ name: 'view_cart', args: {} });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('CART_ALREADY_CHECKED_OUT');
+    expectMatchesSpec('post', FN_CALLS, res);
+  });
 });
