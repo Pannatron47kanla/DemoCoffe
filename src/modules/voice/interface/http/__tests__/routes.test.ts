@@ -402,4 +402,16 @@ describe('voice HTTP routes', () => {
     expect(res.body.cart.id).toBe(cart.id);
     expectMatchesSpec('post', FN_CALLS, res);
   });
+
+  it('AC18: ตะกร้าแก้ไขล่าสุด 10 นาทีก่อน add_to_cart แล้ว expiresAt = ตอนนี้ + 15 นาที', async () => {
+    const clock = fixedClock('2026-10-20T02:30:00Z');
+    const { call } = await composeWithConsent(clock);
+    clock.advance(10 * 60 * 1000);
+
+    const res = await call({ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: ['size-l'], quantity: 1 } });
+
+    expect(res.status).toBe(200);
+    expect(res.body.cart.expiresAt).toBe('2026-10-20T02:55:00.000Z');
+    expectMatchesSpec('post', FN_CALLS, res);
+  });
 });
