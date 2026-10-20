@@ -357,4 +357,22 @@ describe('UC-04 voice review fixes', () => {
     await act(async () => { release(session); });
     expect(await screen.findByRole('button', { name: '⏹ หยุดเสียง' })).toBeTruthy();
   });
+
+  it('AC23: close ของเสียงโยน error หลังสั่งสำเร็จ ยังขึ้นหน้าคิว', async () => {
+    const fake = fakeVoiceLink();
+    const connect = fake.link.connect;
+    fake.link.connect = async (c, h) => {
+      const s = await connect(c, h);
+      return { ...s, close: () => { throw new Error('boom'); } };
+    };
+    const placed = { id: 'o-1', cartId: 'cart-1', status: 'PLACED' as const, queueNumber: 17, placedAt: '2026-10-20T02:00:00Z', lines: [], total: { amount: '45.00', currency: 'THB' as const }, statusPageUrl: 'http://localhost:3000/q/?order=o-1' };
+    const { user } = await voiceOrdering(voiceApi({ checkout: async () => placed }), fake);
+    await user.click(screen.getByRole('button', { name: /^เอสเพรสโซ่/ }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'ใส่ตะกร้า' }));
+    await user.click(await screen.findByRole('button', { name: 'ยืนยัน' }));
+    await user.click(await screen.findByRole('button', { name: 'ยืนยันสั่ง' }));
+
+    expect(await screen.findByText('หมายเลขคิวของคุณ')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });

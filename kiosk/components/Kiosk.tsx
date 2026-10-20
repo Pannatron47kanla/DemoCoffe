@@ -244,9 +244,14 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
     await run(async () => {
       try {
         setOrder(await api.checkout(cart.id, keyRef.current as string));
-        stopVoice(); // ออเดอร์เสร็จแล้ว ปิดเสียงและไมค์ ล้างคำบรรยาย (R6)
-        setCaptions([]);
         setScreen('queue');
+        // ออเดอร์เสร็จแล้ว ปิดเสียงและไมค์ ล้างคำบรรยาย (R6); ปิดไม่สำเร็จต้องไม่ทำให้ออเดอร์หาย
+        try {
+          stopVoice();
+        } catch {
+          // ไม่เป็นไร: ออเดอร์สำเร็จแล้ว
+        }
+        setCaptions([]);
       } catch (e) {
         if (!(e instanceof ApiError)) throw e;
         const { code, details } = e.body;
