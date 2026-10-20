@@ -83,4 +83,11 @@ describe('Cart', () => {
     expect(cart.lines).toHaveLength(1);
     expect(cart.expiresAt).toEqual(expiresAt);
   });
+
+  it('AC8 (UC-03): ensureReadyForCheckout ตะกร้าว่าง → CART_EMPTY', () => {
+    const cart = Cart.start('cart-1', T0);
+
+    expect(() => cart.ensureReadyForCheckout(T0)).toThrowError(expect.objectContaining({ code: 'CART_EMPTY' }));
+    expect(cart.status).toBe('OPEN');
+  });
 });

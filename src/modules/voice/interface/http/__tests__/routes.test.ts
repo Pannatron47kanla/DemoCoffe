@@ -306,4 +306,15 @@ describe('voice HTTP routes', () => {
     expect(uow.orders.size).toBe(0);
     expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
   });
+
+  it('AC8: request_checkout ตะกร้าว่าง ตอบ 409 CART_EMPTY ตาม spec ไม่มีออเดอร์', async () => {
+    const { call, uow } = await composeWithConsent();
+
+    const res = await call({ name: 'request_checkout', args: {} });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('CART_EMPTY');
+    expect(uow.orders.size).toBe(0);
+    expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
+  });
 });
