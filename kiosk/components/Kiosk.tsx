@@ -35,12 +35,20 @@ export function Kiosk({ api }: { api: KioskApi; voice: VoiceLink; newIdempotency
     setSelected(null);
   }
 
+  async function changeQuantity(lineId: string, quantity: number) {
+    if (cart) setCart(await api.changeQuantity(cart.id, lineId, quantity));
+  }
+
+  async function remove(lineId: string) {
+    if (cart) setCart(await api.removeLine(cart.id, lineId));
+  }
+
   return (
     <main className="kiosk">
       {screen === 'welcome' || !cart ? (
         <WelcomeScreen onStart={start} busy={busy} />
       ) : (
-        <OrderScreen menu={menu} cart={cart} onSelect={setSelected} />
+        <OrderScreen menu={menu} cart={cart} onSelect={setSelected} onChangeQuantity={changeQuantity} onRemove={remove} />
       )}
       {selected ? <ItemOptionsDialog item={selected} onAdd={add} onClose={() => setSelected(null)} /> : null}
     </main>

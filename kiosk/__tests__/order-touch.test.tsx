@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Kiosk } from '../components/Kiosk';
@@ -59,5 +59,37 @@ describe('สั่งด้วยการแตะ', () => {
 
     expect(api.calls.addLine.length).toBe(0);
     expect(screen.getByText('กรุณาเลือกขนาด')).toBeTruthy();
+  });
+
+  it('AC11: แตะ + เป็น 3 แล้วลบ ส่งคำขอและแสดงตาม response ทุกครั้ง', async () => {
+    const { api, user } = setup();
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: /^ลาเต้/ }));
+    const dialog = within(screen.getByRole('dialog'));
+    await user.click(dialog.getByRole('button', { name: 'L' }));
+    await user.click(dialog.getByRole('button', { name: '+' }));
+    await user.click(dialog.getByRole('button', { name: 'ใส่ตะกร้า' }));
+
+    const cart = within(await screen.findByLabelText('ตะกร้า'));
+    await user.click(cart.getByRole('button', { name: '+' }));
+    expect(api.calls.changeQuantity[0]).toEqual(['cart-1', 'line-1', 3]);
+    expect(await cart.findByText('x3')).toBeTruthy();
+
+    await user.click(cart.getByRole('button', { name: 'ลบ' }));
+    expect(api.calls.removeLine[0]).toEqual(['cart-1', 'line-1']);
+    await waitFor(() => expect(cart.queryByText('ลาเต้')).toBeNull());
+    expect(cart.getByText('0.00')).toBeTruthy();
+  });
+
+  it('AC11: ปุ่ม − ที่จำนวน 1 ไม่ส่งคำขอ ใช้ลบแทน', async () => {
+    const { api, user } = setup();
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: /^เอสเพรสโซ่/ }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'ใส่ตะกร้า' }));
+
+    const minus = within(await screen.findByLabelText('ตะกร้า')).getByRole('button', { name: '−' }) as HTMLButtonElement;
+    await user.click(minus);
+    expect(minus.disabled).toBe(true);
+    expect(api.calls.changeQuantity.length).toBe(0);
   });
 });
