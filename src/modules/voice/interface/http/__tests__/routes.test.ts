@@ -113,4 +113,16 @@ describe('voice HTTP routes', () => {
     expect(sessions.count()).toBe(0);
     expect(gateway.calls.length).toBe(0);
   });
+
+  it('AC8: ตอบ 409 CART_ALREADY_CHECKED_OUT ไม่มีบันทึก', async () => {
+    carts.rejectWith = 'CART_ALREADY_CHECKED_OUT';
+
+    const res = await request(app).post('/voice/sessions').send({ cartId: CART, consentTextVersion: 'voice-demo-v1' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('CART_ALREADY_CHECKED_OUT');
+    expectMatchesSpec('post', '/voice/sessions', res);
+    expect(sessions.count()).toBe(0);
+    expect(gateway.calls.length).toBe(0);
+  });
 });

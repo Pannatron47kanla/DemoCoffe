@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fixedClock } from '../../../../shared/clock';
 import { DomainError } from '../../../../shared/domain-error';
+import { sequentialIds } from '../../../../shared/ids';
+import { latte } from '../../domain/__tests__/menu-fixtures';
 import { CheckCartAvailability } from '../check-cart-availability';
-import { InMemoryOrdering } from './fakes';
+import { CheckoutCart } from '../checkout-cart';
+import { FakeMenu, InMemoryOrdering } from './fakes';
 
 async function expectDomainError(promise: Promise<unknown>, code: string) {
   const error = await promise.then(() => null, (e: unknown) => e);
@@ -34,5 +37,17 @@ describe('CheckCartAvailability', () => {
     clock.advance(15 * 60_000);
 
     await expectDomainError(check.assertOpen('cart-a'), 'CART_EXPIRED');
+  });
+
+  it('AC8: ตะกร้ายืนยันออเดอร์แล้ว → CART_ALREADY_CHECKED_OUT', async () => {
+    uow.carts.set('cart-a', {
+      id: 'cart-a',
+      status: 'OPEN',
+      lastActivityAt: clock.now(),
+      lines: [{ id: 'line-a', menuItemId: 'latte', optionChoiceIds: ['size-m'], quantity: 1, unitPriceSatang: 5500 }],
+    });
+    await new CheckoutCart({ uow, menu: new FakeMenu([latte]), clock, ids: sequentialIds() }).execute({ cartId: 'cart-a', idempotencyKey: 'k-1' });
+
+    await expectDomainError(check.assertOpen('cart-a'), 'CART_ALREADY_CHECKED_OUT');
   });
 });
