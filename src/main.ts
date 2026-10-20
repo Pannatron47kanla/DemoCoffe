@@ -1,14 +1,20 @@
 import { createApp } from './app';
 import { systemClock } from './shared/clock';
+import { unavailableVoiceGateway } from './modules/voice';
 import { createPool } from './shared/db';
 import { randomIds } from './shared/ids';
 
 const {
   DATABASE_URL = 'postgres://democoffe:democoffe@127.0.0.1:5432/democoffe',
   MENU_PATH = 'data/menu.json',
+  VOICE_CONSENT_PATH = 'data/voice-consent.json',
+  KIOSK_ID = 'kiosk-1',
   HOST = '127.0.0.1', // เฟส 1 ไม่มีคีย์ตู้ รับเฉพาะเครื่องเดียวกัน
   PORT = '3000',
 } = process.env;
 
-const app = await createApp({ pool: createPool(DATABASE_URL), menuPath: MENU_PATH, clock: systemClock, ids: randomIds });
+const app = await createApp({
+  pool: createPool(DATABASE_URL), menuPath: MENU_PATH, clock: systemClock, ids: randomIds,
+  voice: { gateway: unavailableVoiceGateway, consentPath: VOICE_CONSENT_PATH, kioskId: KIOSK_ID }, // gateway จริงเพิ่มใน Task 14
+});
 app.listen(Number(PORT), HOST, () => console.log(`api listening on http://${HOST}:${PORT}`));

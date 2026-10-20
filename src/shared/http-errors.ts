@@ -25,6 +25,7 @@ const ERRORS: Record<string, { status: number; message: string }> = {
   CART_EMPTY: { status: 409, message: 'ตะกร้ายังว่าง' },
   PRICE_CHANGED: { status: 409, message: 'ราคามีการเปลี่ยนแปลง กรุณาตรวจยอดใหม่' },
   IDEMPOTENCY_KEY_CONFLICT: { status: 409, message: 'key นี้ใช้กับตะกร้าอื่นแล้ว' },
+  VOICE_UNAVAILABLE: { status: 503, message: 'ตอนนี้สั่งด้วยเสียงไม่ได้ กรุณาสั่งด้วยการแตะ' },
 };
 
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {

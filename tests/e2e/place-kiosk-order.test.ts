@@ -3,6 +3,7 @@ import type { Express } from 'express';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../src/app';
+import { unavailableVoiceGateway } from '../../src/modules/voice';
 import { fixedClock } from '../../src/shared/clock';
 import { randomIds } from '../../src/shared/ids';
 import { expectMatchesSpec } from '../support/openapi';
@@ -16,7 +17,13 @@ describe('UC-01 สั่งเครื่องดื่มที่ตู้ 
 
   beforeAll(async () => {
     db = await startTestDatabase();
-    app = await createApp({ pool: db.pool, menuPath: join(import.meta.dirname, '../../data/menu.json'), clock, ids: randomIds });
+    app = await createApp({
+      pool: db.pool,
+      menuPath: join(import.meta.dirname, '../../data/menu.json'),
+       clock,
+      ids: randomIds,
+      voice: { gateway: unavailableVoiceGateway, consentPath: join(import.meta.dirname, '../../data/voice-consent.json'), kioskId: 'kiosk-1' },
+    });
   });
   afterAll(() => db?.stop());
   beforeEach(async () => {
