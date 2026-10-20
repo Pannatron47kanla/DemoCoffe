@@ -29,6 +29,12 @@ function cartIdOf(req: Request): string {
   return cartId;
 }
 
+function orderIdOf(req: Request): string {
+  const orderId = String(req.params.orderId);
+  if (!UUID.test(orderId)) throw new DomainError('ORDER_NOT_FOUND');
+  return orderId;
+}
+
 function lineIdOf(req: Request): string {
   const lineId = String(req.params.lineId);
   if (!UUID.test(lineId)) throw new DomainError('CART_LINE_NOT_FOUND');
@@ -100,7 +106,7 @@ export function orderingRoutes(useCases: OrderingUseCases): Router {
   });
 
   router.get('/orders/:orderId', async (req, res) => {
-    res.json(toCustomerOrderJson(await useCases.getOrder.execute(String(req.params.orderId))));
+    res.json(toCustomerOrderJson(await useCases.getOrder.execute(orderIdOf(req))));
   });
 
   return router;

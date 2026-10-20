@@ -14,6 +14,7 @@ const ERRORS: Record<string, { status: number; message: string }> = {
   VALIDATION_ERROR: { status: 400, message: 'ข้อมูลไม่ถูกต้อง' },
   MENU_ITEM_NOT_FOUND: { status: 404, message: 'ไม่พบเมนูนี้' },
   VOICE_SESSION_NOT_FOUND: { status: 404, message: 'ไม่พบเซสชันเสียง' },
+  ORDER_NOT_FOUND: { status: 404, message: 'ไม่พบออเดอร์' },
   CART_NOT_FOUND: { status: 404, message: 'ไม่พบตะกร้า' },
   CART_LINE_NOT_FOUND: { status: 404, message: 'ไม่พบรายการในตะกร้า' },
   MENU_ITEM_UNAVAILABLE: { status: 409, message: 'เมนูนี้หมดแล้ว' },

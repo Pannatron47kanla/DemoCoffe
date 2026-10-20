@@ -216,6 +216,15 @@ describe('ordering HTTP routes', () => {
       expect(res.body).not.toHaveProperty('statusPageUrl');
       expectMatchesSpec('get', '/orders/{orderId}', res);
     });
+
+    it('AC3: GET /orders/{orderId} id ที่ไม่มีหรือไม่ใช่ uuid ตอบ 404 ORDER_NOT_FOUND', async () => {
+      for (const orderId of [MISSING, 'not-a-uuid']) {
+        const res = await request(app).get(`/orders/${orderId}`);
+
+        await expectError(res, 'get', '/orders/{orderId}', 404, 'ORDER_NOT_FOUND');
+        expect(res.body.message).toBe('ไม่พบออเดอร์');
+      }
+    });
   });
 
   describe('POST /carts/{cartId}/checkout', () => {
