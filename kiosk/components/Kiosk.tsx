@@ -35,6 +35,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
   const [idlePrompt, setIdlePrompt] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
   const voiceRef = useRef<VoiceLinkSession | null>(null);
+  const consentedRef = useRef<{ cartId: string; version: string } | null>(null); // ตะกร้านี้ยินยอมแล้ว ไม่ถามซ้ำ
   const screenRef = useRef<Screen>('welcome');
   screenRef.current = screen;
   const [consent, setConsent] = useState<{ version: string; text: string } | null>(null);
@@ -60,6 +61,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
     setOrder(null);
     setSelected(null);
     setConsent(null);
+    consentedRef.current = null;
     setProblemLineIds([]);
     setScreen('welcome');
   }
@@ -125,19 +127,30 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
     if (!consent || !cart) return;
     const { version } = consent;
     setConsent(null);
-    await run(async () => {
+    await startVoice(cart.id, version);
+  }
+
+  // ตะกร้าเดิมที่ยินยอมแล้วเปิดเสียงใหม่ได้เลย ไม่แสดงแผ่นยินยอมอีก
+  function toggleVoice() {
+    if (voiceOn) return stopVoice();
+    if (cart && consentedRef.current?.cartId === cart.id) return startVoice(cart.id, consentedRef.current.version);
+    return openConsent();
+  }
+
+  const startVoice = (cartId: string, version: string) =>
+    run(async () => {
       try {
-        await openVoice(cart.id, version);
+        await openVoice(cartId, version);
       } catch (e) {
         // ตะกร้าหมดอายุใช้กฎเดียวกับทุกที่; อย่างอื่นคือเปิดเสียงไม่ได้ ให้แตะสั่งต่อ
         if (e instanceof ApiError && e.body.code === 'CART_EXPIRED') throw e;
         setError(VOICE_UNAVAILABLE);
       }
     });
-  }
 
   async function openVoice(cartId: string, version: string) {
     const session = await api.startVoiceSession(cartId, version);
+    consentedRef.current = { cartId, version };
     // batch ที่ซ้อนกันต่อคิวทีละชุด เพื่อให้ response ถึง Gemini ตามลำดับ
     let chain: Promise<void> = Promise.resolve();
     const slot: { link?: VoiceLinkSession } = {};
@@ -224,7 +237,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
       ) : screen === 'confirm' ? (
         <ConfirmScreen cart={cart} busy={busy} onPlace={place} onBack={() => setScreen('order')} />
       ) : (
-        <OrderScreen menu={menu} cart={cart} onSelect={setSelected} onChangeQuantity={changeQuantity} onRemove={remove} onConfirm={goConfirm} problemLineIds={problemLineIds} voiceOn={voiceOn} onVoice={voiceOn ? stopVoice : openConsent} />
+        <OrderScreen menu={menu} cart={cart} onSelect={setSelected} onChangeQuantity={changeQuantity} onRemove={remove} onConfirm={goConfirm} problemLineIds={problemLineIds} voiceOn={voiceOn} onVoice={toggleVoice} />
       )}
       {idlePrompt ? <IdlePrompt onStay={() => setIdlePrompt(false)} onTimeout={resetToWelcome} /> : null}
       {consent ? <ConsentSheet text={consent.text} onAccept={acceptConsent} onDecline={() => setConsent(null)} /> : null}

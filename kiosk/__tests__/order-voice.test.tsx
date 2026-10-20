@@ -269,4 +269,30 @@ describe('UC-04 voice stop and reopen', () => {
     expect(fake.responses).toHaveLength(0);
     expect(screen.queryByText(NOTICE)).toBeNull();
   });
+
+  it('AC16: ยินยอมแล้วแตะเสียงอีกครั้งไม่แสดงแผ่นยินยอม ขอข้อมูลเชื่อมต่อใหม่', async () => {
+    const { user, api, fake } = await voiceOrdering();
+    await user.click(screen.getByRole('button', { name: '⏹ หยุดเสียง' }));
+    await user.click(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+
+    expect(await screen.findByRole('button', { name: '⏹ หยุดเสียง' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'ยินยอม' })).toBeNull();
+    expect(api.calls.getConsentText).toHaveLength(1);
+    expect(api.calls.startVoiceSession).toHaveLength(2);
+    expect(api.calls.startVoiceSession[1]).toEqual(['cart-1', 'voice-demo-v1']);
+    expect(fake.connections).toBe(2);
+  });
+
+  it('AC16: onClose ของเซสชันเก่าหลังเปิดใหม่ ไม่ปิดเซสชันใหม่', async () => {
+    const { user, fake } = await voiceOrdering();
+    const oldHandlers = fake.handlers();
+    await user.click(screen.getByRole('button', { name: '⏹ หยุดเสียง' }));
+    await user.click(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+    await screen.findByRole('button', { name: '⏹ หยุดเสียง' });
+
+    await act(async () => { oldHandlers.onClose('error'); });
+    expect(fake.closed).toBe(false);
+    expect(screen.getByRole('button', { name: '⏹ หยุดเสียง' })).toBeTruthy();
+    expect(screen.queryByText(NOTICE)).toBeNull();
+  });
 });
