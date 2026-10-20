@@ -272,4 +272,20 @@ describe('voice HTTP routes', () => {
     expect(res.body.cart.totalCups).toBe(0);
     expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
   });
+
+  it('AC6: view_cart คืนตะกร้าล่าสุด ไม่เปลี่ยนอะไร', async () => {
+    const clock = fixedClock('2026-10-20T02:30:00Z');
+    const { both, cart, call } = await composeWithConsent(clock);
+    await call({ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: ['size-l', 'milk-oat'], quantity: 2 } });
+    const before = await request(both).get(`/carts/${cart.id}`);
+    clock.advance(5 * 60 * 1000); // เวลาผ่านไป ถ้า view ต่ออายุ expiresAt จะเปลี่ยน
+
+    const res = await call({ name: 'view_cart', args: {} });
+
+    expect(res.status).toBe(200);
+    expect(res.body.action).toBe('SHOW_CART');
+    expect(res.body.cart.expiresAt).toBe(before.body.expiresAt);
+    expect(res.body.cart.lines).toEqual(before.body.lines);
+    expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
+  });
 });

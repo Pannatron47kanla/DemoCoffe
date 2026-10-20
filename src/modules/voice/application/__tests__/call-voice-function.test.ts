@@ -50,4 +50,12 @@ describe('CallVoiceFunction', () => {
     expect(result.action).toBe('SHOW_CART');
     expect(result.cart).toEqual({ id: CART_ID });
   });
+
+  it("AC6: view_cart เรียก cartOperations.view(cartId) เท่านั้น", async () => {
+    const result = await useCase.execute({ sessionId: SESSION_ID, call: { name: 'view_cart' } });
+
+    expect(cartOperations.calls).toEqual([{ op: 'view', cartId: CART_ID, args: [] }]);
+    expect(result.action).toBe('SHOW_CART');
+    expect(result.cart).toEqual({ id: CART_ID });
+  });
 });

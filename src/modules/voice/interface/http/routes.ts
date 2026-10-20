@@ -44,6 +44,8 @@ function functionCallBody(body: unknown): VoiceFunctionCall {
       return { name, lineId: a.lineId as string, quantity: a.quantity as number };
     case 'remove_from_cart':
       return { name, lineId: a.lineId as string };
+    case 'view_cart':
+      return { name };
     default:
       throw new RequestValidationError(['name']);
   }

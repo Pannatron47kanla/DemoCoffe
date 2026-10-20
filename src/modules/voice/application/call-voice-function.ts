@@ -28,6 +28,10 @@ export class CallVoiceFunction {
         const cart = await cartOperations.remove(session.cartId, call.lineId);
         return { action: 'SHOW_CART', cart };
       }
+      case 'view_cart': {
+        const cart = await cartOperations.view(session.cartId);
+        return { action: 'SHOW_CART', cart };
+      }
       default:
         throw new Error(`${call.name} not implemented`); // งานของ AC ถัดไป
     }
