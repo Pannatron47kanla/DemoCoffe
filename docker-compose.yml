@@ -11,6 +11,13 @@ services:
       MENU_PATH: /app/data/menu.json
       HOST: 0.0.0.0 # ใน container ต้องฟังทุก interface; จำกัดที่ ports ด้านล่างแทน
       PORT: "3000"
+      APP_ENV: development
+      VOICE_ENABLED: "true"
+      VOICE_PROVIDER: ai-studio
+      VOICE_MODEL: gemini-3.8-live
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      KIOSK_ID: kiosk-1
+      VOICE_CONSENT_PATH: /app/data/voice-consent.json
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
