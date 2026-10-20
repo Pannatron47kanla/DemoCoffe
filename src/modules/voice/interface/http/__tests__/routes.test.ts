@@ -11,7 +11,7 @@ import { createVoiceModule } from '../../../module';
 import { unavailableVoiceGateway } from '../../../index';
 import { createOrderingModule } from '../../../../ordering';
 import { FakeMenu, InMemoryOrdering } from '../../../../ordering/application/__tests__/fakes';
-import { americano, latte } from '../../../../ordering/domain/__tests__/menu-fixtures';
+import { americano, latte, matchaSoldOut } from '../../../../ordering/domain/__tests__/menu-fixtures';
 
 describe('voice HTTP routes', () => {
   let consentTexts: FakeConsentTexts;
@@ -233,7 +233,7 @@ describe('voice HTTP routes', () => {
   async function composeWithConsent(clock = fixedClock('2026-10-20T02:30:00Z')) {
     const ids = sequentialIds();
     const uow = new InMemoryOrdering();
-    const ordering = createOrderingModule({ uow, menu: new FakeMenu([latte, americano]), clock, ids });
+    const ordering = createOrderingModule({ uow, menu: new FakeMenu([latte, americano, matchaSoldOut]), clock, ids });
     const voice = createVoiceModule({
       sessions, carts: ordering.cartAvailability, consentTexts, gateway, menu: new FakeVoiceMenu(),
       cartOperations: ordering.voiceCart, clock, ids, kioskId: 'kiosk-1',
@@ -339,6 +339,16 @@ describe('voice HTTP routes', () => {
 
     expect(res.status).toBe(404);
     expect(res.body.code).toBe('MENU_ITEM_NOT_FOUND');
+    expectMatchesSpec('post', FN_CALLS, res);
+  });
+
+  it('AC11: add_to_cart มัทฉะลาเต้ที่หมด → 409 MENU_ITEM_UNAVAILABLE', async () => {
+    const { call } = await composeWithConsent();
+
+    const res = await call({ name: 'add_to_cart', args: { menuItemId: 'matcha-latte', optionChoiceIds: ['size-m'], quantity: 1 } });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('MENU_ITEM_UNAVAILABLE');
     expectMatchesSpec('post', FN_CALLS, res);
   });
 });
