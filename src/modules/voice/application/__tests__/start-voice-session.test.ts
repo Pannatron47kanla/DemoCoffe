@@ -31,6 +31,15 @@ describe('StartVoiceSession', () => {
 
     expect(result.created).toBe(true);
     expect(sessions.count()).toBe(1);
+    // หลักฐานความยินยอมที่เก็บ: เวลา 09:30, ตู้, เวอร์ชันข้อความ, ตะกร้า
+    const stored = await sessions.findByCartId(CART_ID);
+    expect(stored?.toState()).toEqual({
+      id: result.session.id,
+      cartId: CART_ID,
+      kioskId: 'kiosk-1',
+      consentTextVersion: 'voice-demo-v1',
+      consentedAt: new Date('2026-10-20T02:30:00Z'),
+    });
     expect(result.connection.token.startsWith('auth_tokens/')).toBe(true);
     expect(result.connection.model).toBe('gemini-3.8-live');
     expect(result.connection.startBefore).toEqual(new Date('2026-10-20T02:31:00Z'));
