@@ -35,17 +35,19 @@ describe('UC-04 จากยืนยันออเดอร์ถึงหน�
   it('AC4, AC28: แตะสั่ง ยืนยัน แล้วเปิดหน้าสถานะจาก statusPageUrl', async () => {
     const started = await request(app).post('/carts');
     expect(started.status).toBe(201);
+    expectMatchesSpec('post', '/carts', started);
     const cartId = started.body.id;
 
     const added = await request(app).post(`/carts/${cartId}/lines`).send({ menuItemId: 'latte', optionChoiceIds: ['size-l', 'milk-oat'], quantity: 2 });
     expect(added.status).toBe(200);
+    expectMatchesSpec('post', '/carts/{cartId}/lines', added);
     expect(added.body.total.amount).toBe('160.00');
 
     const placed = await request(app).post(`/carts/${cartId}/checkout`).set('Idempotency-Key', 'k-e2e-status-1');
     expect(placed.status).toBe(201);
     expectMatchesSpec('post', '/carts/{cartId}/checkout', placed);
     expect(placed.body).toMatchObject({ status: 'PLACED', queueNumber: 1, total: { amount: '160.00' } });
-    expect(placed.body.statusPageUrl).toMatch(/^https:\/\/demo\.example\.com\/q\/\?order=/);
+    expect(placed.body.statusPageUrl).toBe(`https://demo.example.com/q/?order=${placed.body.id}`);
 
     const statusUrl = new URL(placed.body.statusPageUrl);
     const orderId = statusUrl.searchParams.get('order');
