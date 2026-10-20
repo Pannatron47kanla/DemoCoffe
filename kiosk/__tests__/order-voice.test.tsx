@@ -28,4 +28,16 @@ describe('UC-04 voice consent', () => {
     expect(accept.className).toBeTruthy();
     expect(accept.className).toBe(decline.className);
   });
+
+  it('AC14: แตะ ไม่ใช่ตอนนี้ ปิดแผ่น ไม่เรียก startVoiceSession แตะเมนูต่อได้', async () => {
+    const { user, api, fake } = await ordering();
+    await user.click(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+    await user.click(await screen.findByRole('button', { name: 'ไม่ใช่ตอนนี้' }));
+
+    expect(screen.queryByRole('button', { name: 'ยินยอม' })).toBeNull();
+    expect(api.calls.startVoiceSession).toHaveLength(0);
+    expect(fake.connections).toBe(0);
+    await user.click(screen.getByRole('button', { name: /^เอสเพรสโซ่/ }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
 });
