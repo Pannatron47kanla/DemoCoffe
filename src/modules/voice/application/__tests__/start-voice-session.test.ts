@@ -47,6 +47,7 @@ describe('StartVoiceSession', () => {
     expect(second.connection.token).not.toBe(first.connection.token);
     expect(second.connection.startBefore).toEqual(new Date('2026-10-20T02:36:00Z'));
     expect(sessions.count()).toBe(1);
+    expect(sessions.addCalls).toBe(1); // กดซ้ำต้องไม่พยายามบันทึกความยินยอมอีก
   });
 
   it('AC4: ข้อความเปลี่ยนเป็น voice-demo-v2 หลังยินยอมแล้ว กดซ้ำยังได้เซสชันเดิม', async () => {
@@ -59,5 +60,6 @@ describe('StartVoiceSession', () => {
     expect(second.session.id).toBe(first.session.id);
     expect(second.session.consentTextVersion).toBe('voice-demo-v1');
     expect(sessions.count()).toBe(1);
+    expect(sessions.addCalls).toBe(1); // กดซ้ำต้องไม่พยายามบันทึกความยินยอมอีก
   });
 });

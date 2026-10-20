@@ -36,7 +36,7 @@ describe('PgVoiceSessionRepository', () => {
 
   it('AC3: voice_sessions มีเฉพาะคอลัมน์หลักฐาน ไม่มีข้อมูลบุคคลหรือเสียง', async () => {
     const { rows } = await db.pool.query(
-      "SELECT column_name FROM information_schema.columns WHERE table_name = 'voice_sessions' ORDER BY ordinal_position",
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'voice_sessions' AND table_schema = current_schema() ORDER BY ordinal_position",
     );
 
     expect(rows.map((r) => r.column_name)).toEqual([

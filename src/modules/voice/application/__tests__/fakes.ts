@@ -28,6 +28,7 @@ export class FakeVoiceGateway implements VoiceGateway {
 
 export class InMemoryVoiceSessions implements VoiceSessionRepository {
   private readonly byCart = new Map<string, VoiceSessionState>();
+  addCalls = 0;
 
   async findByCartId(cartId: string): Promise<VoiceSession | null> {
     const state = this.byCart.get(cartId);
@@ -35,6 +36,7 @@ export class InMemoryVoiceSessions implements VoiceSessionRepository {
   }
 
   async add(session: VoiceSession): Promise<{ session: VoiceSession; created: boolean }> {
+    this.addCalls += 1;
     const existing = await this.findByCartId(session.cartId);
     if (existing) return { session: existing, created: false };
     this.byCart.set(session.cartId, structuredClone(session.toState()));
