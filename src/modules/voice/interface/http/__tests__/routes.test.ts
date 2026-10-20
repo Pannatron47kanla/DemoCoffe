@@ -331,4 +331,14 @@ describe('voice HTTP routes', () => {
     expectMatchesSpec('post', FN_CALLS, res);
     expect((await request(both).get(`/carts/${cart.id}`)).body.lines).toEqual([]);
   });
+
+  it('AC10: add_to_cart bubble-tea → 404 MENU_ITEM_NOT_FOUND', async () => {
+    const { call } = await composeWithConsent();
+
+    const res = await call({ name: 'add_to_cart', args: { menuItemId: 'bubble-tea', optionChoiceIds: [], quantity: 1 } });
+
+    expect(res.status).toBe(404);
+    expect(res.body.code).toBe('MENU_ITEM_NOT_FOUND');
+    expectMatchesSpec('post', FN_CALLS, res);
+  });
 });
