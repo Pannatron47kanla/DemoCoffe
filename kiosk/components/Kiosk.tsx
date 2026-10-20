@@ -1,27 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ApiError, type KioskApi } from '../lib/api';
-import type { Cart, MenuItem } from '../lib/types';
+import type { Cart, MenuItem, Order } from '../lib/types';
 import type { VoiceLink } from '../lib/voice-link';
+import { ConfirmScreen } from './ConfirmScreen';
 import { ItemOptionsDialog, type AddInput } from './ItemOptionsDialog';
 import { OrderScreen } from './OrderScreen';
+import { QueueScreen } from './QueueScreen';
 import { WelcomeScreen } from './WelcomeScreen';
 
 type Screen = 'welcome' | 'order' | 'confirm' | 'queue';
 
-export function Kiosk({ api }: { api: KioskApi; voice: VoiceLink; newIdempotencyKey?: () => string }) {
+export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { api: KioskApi; voice: VoiceLink; newIdempotencyKey?: () => string }) {
   const [screen, setScreen] = useState<Screen>('welcome');
   const [cart, setCart] = useState<Cart | null>(null);
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<MenuItem | null>(null);
 
+  const [problemLineIds, setProblemLineIds] = useState<string[]>([]);
+  const [order, setOrder] = useState<Order | null>(null);
+  const keyRef = useRef<string | null>(null);
+
   const [error, setError] = useState<string | null>(null);
 
   // แสดง message จาก API ตามที่ได้รับ; error อื่น (เช่น เครือข่าย) แสดงข้อความกลาง
   async function run(action: () => Promise<void>) {
     setError(null);
+    setProblemLineIds([]);
     try {
       await action();
     } catch (e) {
@@ -57,13 +64,32 @@ export function Kiosk({ api }: { api: KioskApi; voice: VoiceLink; newIdempotency
       if (cart) setCart(await api.removeLine(cart.id, lineId));
     });
 
+  function goConfirm() {
+    keyRef.current = newIdempotencyKey();
+    setScreen('confirm');
+  }
+
+  async function place() {
+    if (!cart || !keyRef.current) return;
+    setBusy(true);
+    await run(async () => {
+      setOrder(await api.checkout(cart.id, keyRef.current as string));
+      setScreen('queue');
+    });
+    setBusy(false);
+  }
+
   return (
     <main className="kiosk">
       {error ? <p className="error banner" role="alert">{error}</p> : null}
-      {screen === 'welcome' || !cart ? (
+      {screen === 'queue' && order ? (
+        <QueueScreen order={order} />
+      ) : screen === 'welcome' || !cart ? (
         <WelcomeScreen onStart={start} busy={busy} />
+      ) : screen === 'confirm' ? (
+        <ConfirmScreen cart={cart} busy={busy} onPlace={place} onBack={() => setScreen('order')} />
       ) : (
-        <OrderScreen menu={menu} cart={cart} onSelect={setSelected} onChangeQuantity={changeQuantity} onRemove={remove} />
+        <OrderScreen menu={menu} cart={cart} onSelect={setSelected} onChangeQuantity={changeQuantity} onRemove={remove} onConfirm={goConfirm} problemLineIds={problemLineIds} />
       )}
       {selected ? <ItemOptionsDialog item={selected} onAdd={add} onClose={() => setSelected(null)} /> : null}
     </main>
