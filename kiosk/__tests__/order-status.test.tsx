@@ -67,4 +67,11 @@ describe('OrderStatus', () => {
     render(<OrderStatus api={api} orderId="o-1" />);
     expect(await screen.findByText('ระบบขัดข้อง กรุณาติดต่อพนักงาน')).toBeTruthy();
   });
+
+  it('AC29: order ว่างไม่เรียก API', async () => {
+    const api = fakeApi();
+    render(<OrderStatus api={api} orderId="" />);
+    expect(await screen.findByText('ไม่พบออเดอร์')).toBeTruthy();
+    expect(api.calls.getOrder).toEqual([]);
+  });
 });

@@ -14,7 +14,7 @@ export function OrderStatus({ api, orderId }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (orderId === null) return;
+    if (!orderId) return;
     let active = true;
     api.getOrder(orderId).then(
       (o) => {
@@ -30,7 +30,7 @@ export function OrderStatus({ api, orderId }: Props) {
     };
   }, [api, orderId]);
 
-  if (orderId === null) return <main className="status-page"><p className="error">{NOT_FOUND}</p></main>;
+  if (!orderId) return <main className="status-page"><p className="error">{NOT_FOUND}</p></main>;
   if (error) return <main className="status-page"><p className="error">{error}</p></main>;
   if (!order) return <main className="status-page" />;
 
