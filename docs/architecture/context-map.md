@@ -33,6 +33,8 @@ context ของเฟสถัดไป (payment, face-identity, membership, t
 | ordering | ออเดอร์ | ตะกร้าที่ยืนยันแล้ว ราคาถูกตรึงไว้ ณ ตอนยืนยัน | `Order` |
 | ordering | รายการในออเดอร์ | สำเนารายการพร้อมชื่อและราคา ณ ตอนยืนยัน | `OrderLine` |
 | ordering | หมายเลขคิว | เลขเรียงต่อวันทำการ เริ่มที่ 1 แสดงเป็นเลขล้วน | `QueueNumber` |
+| ordering | ออเดอร์ของลูกค้า | ออเดอร์ในมุมของลูกค้าบนมือถือ (คิว สถานะ รายการ ยอด) ไม่มี cartId (UC-04) | `CustomerOrder` |
+| ordering | ลิงก์หน้าสถานะ | `PUBLIC_BASE_URL` + `/q/?order=<orderId>` ใส่ใน QR ที่หน้าคิว (UC-04) | `statusPageUrl` |
 | ordering | ตัวนับคิว | ออกเลขคิวถัดไปของวันทำการ ใน transaction เดียวกับการบันทึกออเดอร์ | `QueueNumberSequence` |
 | ordering | วันทำการ | วันตามเวลา Asia/Bangkok ใช้รีเซ็ตคิว | `BusinessDay` |
 | ordering | เงิน | จำนวนเงินหน่วยสตางค์ (จำนวนเต็ม) | `Money` |
@@ -51,6 +53,7 @@ context ของเฟสถัดไป (payment, face-identity, membership, t
 | voice | ออกโทเคนชั่วคราวของ Gemini Live | `VoiceGateway` (port) ← `AiStudioVoiceGateway` ใน `voice/infrastructure` (ถ้าไม่มี key ใช้ `unavailableVoiceGateway`) เลือกด้วย `VOICE_PROVIDER`: `ai-studio` (เดโม) / `vertex` (ลูกค้าจริง) |
 | voice | แก้ตะกร้าตาม function call ของ Gemini ด้วยกฎ UC-01 (UC-03 R1) | `VoiceCartOperations` (port ใน `voice/application/ports.ts`) ← use case ของ ordering ผ่าน `ordering/index.ts` |
 | voice | เมนูปัจจุบันสำหรับคำสั่งระบบของ Gemini (UC-03 R4) | `VoiceMenu` (port ใน `voice/application/ports.ts`) ← `JsonMenuRepository` จาก `menu/index.ts` |
+| UI ตู้ | เมนู ตะกร้า ยืนยัน หน้าสถานะบนมือถือ | Next.js static export ใน `kiosk/` เสิร์ฟโดย `api` ที่ origin เดียวกัน เรียก `GET /menu`, `/carts/*`, `GET /orders/{orderId}` (UC-04) |
 | UI ตู้ | สั่งผ่านเสียง | Gemini ส่ง function call ให้ UI ตู้ UI ส่งต่อตรงๆ ที่ `POST /voice/sessions/{sessionId}/function-calls` ไม่ตีความเอง แล้วส่ง response กลับให้ Gemini (UC-03) |
 
 ## กฎตัวเลขทางธุรกิจ
@@ -63,4 +66,6 @@ context ของเฟสถัดไป (payment, face-identity, membership, t
 | หมายเลขคิว | เริ่มที่ 1 ทุกวันทำการ (Asia/Bangkok) | `QueueNumber`, `BusinessDay` |
 | เริ่มเสียงหลังออกข้อมูลเชื่อมต่อ | ภายใน 60 วินาที | `VOICE_CONNECTION.START_WITHIN_SECONDS` |
 | อายุโทเคน Gemini Live | 15 นาที | `VOICE_CONNECTION.TOKEN_LIFETIME_MINUTES` |
+| ถามว่ายังสั่งอยู่ไหม | ไม่แตะ 2 นาที แล้วกลับหน้าต้อนรับอีก 15 วินาทีต่อมา (UC-04 R11) | UI ตู้ |
+| หน้าหมายเลขคิวกลับหน้าต้อนรับ | 30 วินาที (UC-04 R12) | UI ตู้ |
 | เวลารอ Google ออกโทเคน | 3000 มิลลิวินาที (เกินแล้วกลับไปสั่งด้วยการแตะ) | `VOICE_CONNECTION.ISSUE_TIMEOUT_MS` |

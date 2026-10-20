@@ -13,8 +13,43 @@ tags:
     description: UC-01 สั่งเครื่องดื่มที่ตู้
   - name: voice
     description: UC-02 ยินยอมและเริ่มสั่งด้วยเสียง, UC-03 สั่งด้วยเสียง
+  - name: menu
+    description: UC-04 เมนูสำหรับหน้าจอตู้
 
 paths:
+  /menu:
+    get:
+      tags: [menu]
+      operationId: getMenu
+      summary: เมนูทั้งหมดสำหรับหน้าจอตู้ (UC-04 AC1)
+      description: อ่าน data/menu.json ใหม่ทุกครั้ง เมนูที่หมดยังอยู่ในรายการโดย available เป็น false
+      responses:
+        '200':
+          description: เมนูปัจจุบัน
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Menu' }
+              examples: { DemoMenu: { $ref: '#/components/examples/DemoMenu' } }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /orders/{orderId}:
+    parameters:
+      - $ref: '#/components/parameters/OrderId'
+    get:
+      tags: [ordering]
+      operationId: getCustomerOrder
+      summary: ออเดอร์สำหรับหน้าสถานะบนมือถือ (UC-04 AC2, AC3)
+      description: เปิดจาก QR ไม่ต้องล็อกอิน id เป็น UUID แบบสุ่มจึงเดาไม่ได้ ไม่ตอบ cartId (UC-04 R9, R10)
+      responses:
+        '200':
+          description: ออเดอร์ที่ยืนยันแล้ว
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CustomerOrder' }
+              examples: { CustomerOrderQueue17: { $ref: '#/components/examples/CustomerOrderQueue17' } }
+        '404': { $ref: '#/components/responses/OrderNotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
   /carts:
     post:
       tags: [ordering]
@@ -304,6 +339,13 @@ components:
       required: true
       schema: { type: string, format: uuid }
       example: 3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      description: id ของออเดอร์จาก checkout (อยู่ใน QR) id ที่ไม่ใช่ UUID ตอบ 404 ORDER_NOT_FOUND
+      schema: { type: string }
+      example: 0c6a4f2e-9d1b-4e3a-8f5c-6b7a8d9e0f12
 
     VoiceSessionId:
       name: sessionId
@@ -314,6 +356,45 @@ components:
       example: 5e1d7c3a-2b4f-4a6e-9c8d-1f0e2d3c4b5a
 
   schemas:
+    MenuOptionChoice:
+      type: object
+      required: [id, name, priceDelta]
+      properties:
+        id: { type: string, example: size-l }
+        name: { type: string, example: L }
+        priceDelta: { $ref: '#/components/schemas/Money' }
+
+    MenuOptionGroup:
+      type: object
+      required: [id, name, required, choices]
+      properties:
+        id: { type: string, example: size }
+        name: { type: string, example: ขนาด }
+        required: { type: boolean, description: ต้องเลือกหนึ่งตัวเลือกก่อนใส่ตะกร้า, example: true }
+        choices:
+          type: array
+          items: { $ref: '#/components/schemas/MenuOptionChoice' }
+
+    MenuItem:
+      type: object
+      required: [id, name, basePrice, available, optionGroups]
+      properties:
+        id: { type: string, example: latte }
+        name: { type: string, example: ลาเต้ }
+        basePrice: { $ref: '#/components/schemas/Money' }
+        available: { type: boolean, description: false คือหมด ตู้แสดงจางและแตะไม่ได้ (UC-04 AC8), example: true }
+        optionGroups:
+          type: array
+          items: { $ref: '#/components/schemas/MenuOptionGroup' }
+
+    Menu:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/MenuItem' }
+
     Money:
       type: object
       required: [amount, currency]
@@ -400,7 +481,7 @@ components:
 
     Order:
       type: object
-      required: [id, cartId, status, queueNumber, placedAt, lines, total]
+      required: [id, cartId, status, queueNumber, placedAt, lines, total, statusPageUrl]
       properties:
         id: { type: string, format: uuid, example: 0c6a4f2e-9d1b-4e3a-8f5c-6b7a8d9e0f12 }
         cartId: { type: string, format: uuid, example: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60 }
@@ -411,6 +492,25 @@ components:
           description: เรียงต่อวันทำการ Asia/Bangkok เริ่มที่ 1 (R10)
           example: 1
         placedAt: { type: string, format: date-time, example: '2026-10-19T02:30:00Z' }
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/OrderLine' }
+        total: { $ref: '#/components/schemas/Money' }
+        statusPageUrl:
+          type: string
+          format: uri
+          description: ลิงก์หน้าสถานะบนมือถือสำหรับ QR = PUBLIC_BASE_URL + /q/?order=<id> (UC-04 AC4, AC5)
+          example: http://localhost:3000/q/?order=0c6a4f2e-9d1b-4e3a-8f5c-6b7a8d9e0f12
+
+    CustomerOrder:
+      type: object
+      description: ออเดอร์ในมุมของลูกค้าบนมือถือ ไม่มี cartId (UC-04 R10)
+      required: [id, status, queueNumber, placedAt, lines, total]
+      properties:
+        id: { type: string, format: uuid, example: 0c6a4f2e-9d1b-4e3a-8f5c-6b7a8d9e0f12 }
+        status: { type: string, enum: [PLACED], description: PLACED แสดงว่า "รับออเดอร์แล้ว", example: PLACED }
+        queueNumber: { type: integer, minimum: 1, example: 17 }
+        placedAt: { type: string, format: date-time, example: '2026-10-20T02:30:00Z' }
         lines:
           type: array
           items: { $ref: '#/components/schemas/OrderLine' }
@@ -526,6 +626,7 @@ components:
             - CONSENT_TEXT_OUTDATED
             - VOICE_UNAVAILABLE
             - VOICE_SESSION_NOT_FOUND
+            - ORDER_NOT_FOUND
             - INTERNAL_ERROR
           example: CART_LIMIT_REACHED
         message: { type: string, example: ตะกร้ามีได้ไม่เกิน 20 แก้ว }
@@ -587,6 +688,49 @@ components:
             unitPrice: { amount: '80.00', currency: THB }
             lineTotal: { amount: '160.00', currency: THB }
         total: { amount: '160.00', currency: THB }
+        statusPageUrl: http://localhost:3000/q/?order=0c6a4f2e-9d1b-4e3a-8f5c-6b7a8d9e0f12
+    CustomerOrderQueue17:
+      summary: คิว 17 ลาเต้ L นมโอ๊ต 2 แก้ว (UC-04 AC2)
+      value:
+        id: 0c6a4f2e-9d1b-4e3a-8f5c-6b7a8d9e0f12
+        status: PLACED
+        queueNumber: 17
+        placedAt: '2026-10-20T02:30:00Z'
+        lines:
+          - menuItemId: latte
+            name: ลาเต้
+            options:
+              - { choiceId: size-l, groupName: ขนาด, name: L, priceDelta: { amount: '10.00', currency: THB } }
+              - { choiceId: milk-oat, groupName: นม, name: นมโอ๊ต, priceDelta: { amount: '15.00', currency: THB } }
+            quantity: 2
+            unitPrice: { amount: '80.00', currency: THB }
+            lineTotal: { amount: '160.00', currency: THB }
+        total: { amount: '160.00', currency: THB }
+    DemoMenu:
+      summary: เมนูเดโม มัทฉะลาเต้หมด (UC-04 AC1)
+      value:
+        items:
+          - id: latte
+            name: ลาเต้
+            basePrice: { amount: '55.00', currency: THB }
+            available: true
+            optionGroups:
+              - id: size
+                name: ขนาด
+                required: true
+                choices:
+                  - { id: size-m, name: M, priceDelta: { amount: '0.00', currency: THB } }
+                  - { id: size-l, name: L, priceDelta: { amount: '10.00', currency: THB } }
+              - id: milk
+                name: นม
+                required: false
+                choices:
+                  - { id: milk-oat, name: นมโอ๊ต, priceDelta: { amount: '15.00', currency: THB } }
+          - id: matcha-latte
+            name: มัทฉะลาเต้
+            basePrice: { amount: '65.00', currency: THB }
+            available: false
+            optionGroups: []
 
     DemoConsentText:
       summary: ข้อความยินยอมของเดโม (AC1)
@@ -624,6 +768,12 @@ components:
             MenuItemNotFound: { value: { code: MENU_ITEM_NOT_FOUND, message: ไม่พบเมนูนี้ } }
             CartNotFound: { value: { code: CART_NOT_FOUND, message: ไม่พบตะกร้า } }
             CartLineNotFound: { value: { code: CART_LINE_NOT_FOUND, message: ไม่พบรายการในตะกร้า } }
+    OrderNotFound:
+      description: ไม่พบออเดอร์ หรือ id ไม่ใช่ UUID (UC-04 AC3)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: ORDER_NOT_FOUND, message: ไม่พบออเดอร์ }
     CartRuleViolation:
       description: ผิดกฎตะกร้า (AC8–AC12, AC14, AC19)
       content:

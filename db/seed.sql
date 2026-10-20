@@ -106,3 +106,19 @@ INSERT INTO cart_lines (id, cart_id, menu_item_id, option_choice_ids, quantity, 
   ('a0000000-0000-4000-8000-000000000331', 'c0000000-0000-4000-8000-000000000031', 'americano', '{size-m}', 1, 5000);
 INSERT INTO voice_sessions (id, cart_id, kiosk_id, consent_text_version, consented_at) VALUES
   ('d0000000-0000-4000-8000-000000000331', 'c0000000-0000-4000-8000-000000000031', 'kiosk-1', 'voice-demo-v1', now() - interval '10 minutes');
+
+-- UC-04 หน้าจอตู้และหน้าสถานะบนมือถือ (id ชุด K<n> เลขท้าย 04xx)
+-- AC1 อ่าน data/menu.json (มัทฉะลาเต้หมดอยู่แล้ว); AC3, AC29 ใช้ orderId ที่ไม่มีหรือไม่ใช่ UUID
+-- AC4, AC5 ตั้ง PUBLIC_BASE_URL ที่ env ของ api แล้วยืนยัน S6; AC6 ตรวจในเทสต์ของ adapter; AC8–AC27 ใช้ API ปลอมในเทสต์ของ UI
+-- K1 ออเดอร์คิว 17 ของวันนี้ ลาเต้ L นมโอ๊ต 2 แก้ว 160.00 → AC2, AC28 (เปิด /q/?order=e0000000-0000-4000-8000-000000000401)
+INSERT INTO carts (id, status, last_activity_at) VALUES
+  ('c0000000-0000-4000-8000-000000000401', 'CHECKED_OUT', now() - interval '3 minutes');
+INSERT INTO cart_lines (id, cart_id, menu_item_id, option_choice_ids, quantity, unit_price_satang) VALUES
+  ('a0000000-0000-4000-8000-000000000401', 'c0000000-0000-4000-8000-000000000401', 'latte', '{milk-oat,size-l}', 2, 8000);
+INSERT INTO orders (id, cart_id, idempotency_key, status, business_day, queue_number, placed_at) VALUES
+  ('e0000000-0000-4000-8000-000000000401', 'c0000000-0000-4000-8000-000000000401', 'k-uc04-17', 'PLACED',
+   (now() AT TIME ZONE 'Asia/Bangkok')::date, 17, now() - interval '3 minutes');
+INSERT INTO order_lines (id, order_id, position, menu_item_id, menu_item_name, options, quantity, unit_price_satang) VALUES
+  ('b0000000-0000-4000-8000-000000000401', 'e0000000-0000-4000-8000-000000000401', 1, 'latte', 'ลาเต้',
+   '[{"choiceId":"size-l","groupName":"ขนาด","name":"L","priceDeltaSatang":1000},{"choiceId":"milk-oat","groupName":"นม","name":"นมโอ๊ต","priceDeltaSatang":1500}]',
+   2, 8000);
