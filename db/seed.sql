@@ -84,3 +84,25 @@ INSERT INTO carts (id, status, last_activity_at) VALUES
   ('c0000000-0000-4000-8000-000000000022', 'OPEN', now());
 INSERT INTO voice_sessions (id, cart_id, kiosk_id, consent_text_version, consented_at) VALUES
   ('d0000000-0000-4000-8000-000000000022', 'c0000000-0000-4000-8000-000000000022', 'kiosk-1', 'voice-demo-v1', now() - interval '2 minutes');
+
+-- UC-03 สั่งด้วยเสียง: เซสชันเสียงบนตะกร้าเดิมของ UC-01 (id เซสชัน d...03xx)
+-- AC1, AC2 ตรวจในเทสต์ของ adapter; AC14 ใช้ sessionId ที่ไม่มี; AC16 ส่งชื่อหรือ args ผิด; AC17 ตั้ง VOICE_ENABLED=false
+INSERT INTO voice_sessions (id, cart_id, kiosk_id, consent_text_version, consented_at) VALUES
+  -- S1 ตะกร้าว่าง → AC3, AC8, AC9 (americano ไม่เลือกขนาด), AC10 (bubble-tea), AC11 (matcha-latte), AC13 (ใช้ lineId ของ S2)
+  ('d0000000-0000-4000-8000-000000000301', 'c0000000-0000-4000-8000-000000000001', 'kiosk-1', 'voice-demo-v1', now()),
+  -- S2 ลาเต้ L นมโอ๊ต 2 แก้ว → AC4, AC5, AC6, AC7, AC13 (ตะกร้า B)
+  ('d0000000-0000-4000-8000-000000000302', 'c0000000-0000-4000-8000-000000000002', 'kiosk-1', 'voice-demo-v1', now()),
+  -- S3 ตะกร้า 18 แก้ว → AC12
+  ('d0000000-0000-4000-8000-000000000303', 'c0000000-0000-4000-8000-000000000003', 'kiosk-1', 'voice-demo-v1', now()),
+  -- S4 ตะกร้าไม่ได้แก้ไข 16 นาที → AC15 (CART_EXPIRED)
+  ('d0000000-0000-4000-8000-000000000304', 'c0000000-0000-4000-8000-000000000004', 'kiosk-1', 'voice-demo-v1', now() - interval '16 minutes'),
+  -- S5 ตะกร้ายืนยันแล้ว → AC15 (CART_ALREADY_CHECKED_OUT)
+  ('d0000000-0000-4000-8000-000000000305', 'c0000000-0000-4000-8000-000000000005', 'kiosk-1', 'voice-demo-v1', now() - interval '6 minutes');
+
+-- V3 ตะกร้ามีอเมริกาโน่ แก้ไขล่าสุด 10 นาทีก่อน → AC18 (เพิ่มแล้วต่ออายุ)
+INSERT INTO carts (id, status, last_activity_at) VALUES
+  ('c0000000-0000-4000-8000-000000000031', 'OPEN', now() - interval '10 minutes');
+INSERT INTO cart_lines (id, cart_id, menu_item_id, option_choice_ids, quantity, unit_price_satang) VALUES
+  ('a0000000-0000-4000-8000-000000000331', 'c0000000-0000-4000-8000-000000000031', 'americano', '{size-m}', 1, 5000);
+INSERT INTO voice_sessions (id, cart_id, kiosk_id, consent_text_version, consented_at) VALUES
+  ('d0000000-0000-4000-8000-000000000331', 'c0000000-0000-4000-8000-000000000031', 'kiosk-1', 'voice-demo-v1', now() - interval '10 minutes');
