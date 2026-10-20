@@ -12,7 +12,7 @@ function choiceText(choice: VoiceMenuChoice): string {
 
 function groupText(group: VoiceMenuGroup): string {
   const rule = group.required ? 'ต้องเลือก' : 'ไม่บังคับ';
-  return `  - ${group.name} (${group.id}, ${rule}): ${group.choices.map(choiceText).join(', ')}`;
+  return `  - ${group.name} (กลุ่ม ${group.id}, ${rule}): ${group.choices.map(choiceText).join(', ')}`;
 }
 
 function itemText(item: VoiceMenuItem): string {
@@ -31,6 +31,8 @@ const BEHAVIOUR_RULES = [
   '4. พูดราคาจากผลลัพธ์ของฟังก์ชันเท่านั้น ห้ามคำนวณหรือเดาราคาเอง',
   '5. เมื่อลูกค้าจะจ่ายเงิน ให้เรียก request_checkout แล้วบอกให้ลูกค้าแตะยืนยันบนจอ',
   '6. ห้ามยืนยันออเดอร์เอง การยืนยันทำโดยลูกค้าแตะบนจอเท่านั้น',
+  '7. ก่อน change_quantity หรือ remove_from_cart ให้ใช้ id รายการ (lines[].id) จากผลของฟังก์ชันล่าสุด ถ้าไม่แน่ใจหรือยังไม่เคยเห็นตะกร้า ให้เรียก view_cart ก่อน',
+  '8. id ภาษาอังกฤษในเมนู (เช่น latte, size-l, กลุ่ม size) ส่งในฟังก์ชันเท่านั้น ไม่ต้องพูด id ให้ลูกค้าฟัง',
 ];
 
 // คำสั่งระบบของ Gemini: ข้อปฏิบัติ (R5) + เมนูปัจจุบัน (R4) ผลลัพธ์เดียวกันสำหรับเมนูเดียวกัน

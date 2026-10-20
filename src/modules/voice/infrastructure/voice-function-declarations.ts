@@ -21,7 +21,7 @@ export const VOICE_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
     parameters: {
       type: Type.OBJECT,
       properties: {
-        lineId: { type: Type.STRING, description: 'id ของรายการในตะกร้า' },
+        lineId: { type: Type.STRING, description: 'id จาก lines[].id ในผลของฟังก์ชันล่าสุด' },
         quantity: { type: Type.INTEGER, description: 'จำนวนใหม่' },
       },
       required: ['lineId', 'quantity'],
@@ -32,7 +32,7 @@ export const VOICE_FUNCTION_DECLARATIONS: FunctionDeclaration[] = [
     description: 'ลบรายการออกจากตะกร้า',
     parameters: {
       type: Type.OBJECT,
-      properties: { lineId: { type: Type.STRING, description: 'id ของรายการในตะกร้า' } },
+      properties: { lineId: { type: Type.STRING, description: 'id จาก lines[].id ในผลของฟังก์ชันล่าสุด' } },
       required: ['lineId'],
     },
   },

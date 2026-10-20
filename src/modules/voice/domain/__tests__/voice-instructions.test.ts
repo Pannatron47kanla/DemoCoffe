@@ -37,9 +37,13 @@ describe('buildVoiceInstructions', () => {
       'พูดราคาตามผลของฟังก์ชันเท่านั้น': 'ผลลัพธ์ของฟังก์ชันเท่านั้น',
       'เรียก request_checkout แล้วบอกให้แตะยืนยันบนจอ': 'แตะยืนยันบนจอ',
       'ห้ามยืนยันออเดอร์เอง': 'ห้ามยืนยันออเดอร์เอง',
+      'ใช้ id รายการจากผลฟังก์ชันล่าสุด ไม่แน่ใจให้ view_cart ก่อน': 'ถ้าไม่แน่ใจหรือยังไม่เคยเห็นตะกร้า ให้เรียก view_cart ก่อน',
+      'ใช้ lines[].id ก่อน change_quantity หรือ remove_from_cart': 'ก่อน change_quantity หรือ remove_from_cart ให้ใช้ id รายการ (lines[].id) จากผลของฟังก์ชันล่าสุด',
+      'id ใช้ในฟังก์ชันเท่านั้น ไม่พูดให้ลูกค้าฟัง': 'ไม่ต้องพูด id ให้ลูกค้าฟัง',
     };
     for (const [rule, keyword] of Object.entries(rules)) expect(text, rule).toContain(keyword);
     expect(text).toContain('request_checkout');
+    expect(text).toContain('กลุ่ม size'); // id กลุ่มติดป้ายกลุ่ม ไม่ให้เหมือน id ตัวเลือก
     for (const word of ['cartId', 'kioskId', 'kiosk', 'phone', 'เบอร์', 'image']) expect(text).not.toContain(word);
   });
 
