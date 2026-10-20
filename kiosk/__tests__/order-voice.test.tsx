@@ -125,3 +125,50 @@ describe('UC-04 voice session', () => {
     }
   });
 });
+
+async function voiceOrdering(api = voiceApi(), fake = fakeVoiceLink()) {
+  render(<Kiosk api={api} voice={fake.link} />);
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+  await user.click(await screen.findByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+  await user.click(await screen.findByRole('button', { name: 'ยินยอม' }));
+  await screen.findByRole('button', { name: '⏹ หยุดเสียง' });
+  return { user, api, fake };
+}
+
+describe('UC-04 voice checkout', () => {
+  it('AC18: request_checkout ได้ SHOW_CHECKOUT เปิดหน้ายืนยัน ไม่เรียก checkout', async () => {
+    const cart = { id: 'cart-1', status: 'OPEN', expiresAt: '2026-10-20T02:46:00Z', totalCups: 0, total: { amount: '0.00', currency: 'THB' }, lines: [] };
+    const api = fakeApi({
+      getConsentText: async () => ({ version: 'voice-demo-v1', text: 'ข้อความยินยอม' }),
+      startVoiceSession: async () => session,
+      callVoiceFunction: async () => ({ status: 200, body: { action: 'SHOW_CHECKOUT', cart } }),
+    });
+    const { fake } = await voiceOrdering(api);
+    await act(async () => { fake.handlers().onFunctionCalls([{ id: 'fc1', name: 'request_checkout', args: {} }]); });
+
+    expect(await screen.findByRole('button', { name: 'ยืนยันสั่ง' })).toBeTruthy();
+    expect(api.calls.checkout).toHaveLength(0);
+  });
+
+  it('AC18: หลาย batch ซ้อนกัน ตอบกลับตามลำดับที่ได้รับ', async () => {
+    const releases: (() => void)[] = [];
+    const api = fakeApi({
+      getConsentText: async () => ({ version: 'voice-demo-v1', text: 'ข้อความยินยอม' }),
+      startVoiceSession: async () => session,
+      callVoiceFunction: (_s, call) => new Promise((res) => { releases.push(() => res({ status: 200, body: { echo: call.name } })); }),
+    });
+    const { fake } = await voiceOrdering(api);
+    await act(async () => {
+      fake.handlers().onFunctionCalls([{ id: 'a', name: 'first', args: {} }]);
+      fake.handlers().onFunctionCalls([{ id: 'b', name: 'second', args: {} }]);
+    });
+    await waitFor(() => expect(releases).toHaveLength(1));
+    expect(api.calls.callVoiceFunction).toHaveLength(1);
+    await act(async () => { releases[0]?.(); });
+    await waitFor(() => expect(releases).toHaveLength(2));
+    await act(async () => { releases[1]?.(); });
+    await waitFor(() => expect(fake.responses).toHaveLength(2));
+    expect(fake.responses.map((r) => (r[0] as { id: string }).id)).toEqual(['a', 'b']);
+  });
+});

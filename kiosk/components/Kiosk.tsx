@@ -33,7 +33,8 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
   const [idlePrompt, setIdlePrompt] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
   const voiceRef = useRef<VoiceLinkSession | null>(null);
-  const [, setShowCheckout] = useState(false); // Task 22 จะเปิดหน้ายืนยันจากค่านี้
+  const screenRef = useRef<Screen>('welcome');
+  screenRef.current = screen;
   const [consent, setConsent] = useState<{ version: string; text: string } | null>(null);
 
   // แสดง message จาก API ตามที่ได้รับ; error อื่น (เช่น เครือข่าย) แสดงข้อความกลาง
@@ -124,9 +125,11 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
     setConsent(null);
     await run(async () => {
       const session = await api.startVoiceSession(cart.id, version);
+      // batch ที่ซ้อนกันต่อคิวทีละชุด เพื่อให้ response ถึง Gemini ตามลำดับ
+      let chain: Promise<void> = Promise.resolve();
       voiceRef.current = await voice.connect(session.connection, {
         onFunctionCalls: (calls) => {
-          void relay(session.id, calls);
+          chain = chain.then(() => relay(session.id, calls));
         },
         onTranscript: () => {},
         onClose: () => {
@@ -146,7 +149,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
       return;
     }
     if (result.cart) setCart(result.cart);
-    if (result.showCheckout) setShowCheckout(true);
+    if (result.showCheckout && screenRef.current !== 'confirm') goConfirm();
     voiceRef.current?.sendFunctionResponses(result.responses);
   }
 

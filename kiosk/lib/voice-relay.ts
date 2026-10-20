@@ -26,7 +26,7 @@ export async function relayFunctionCalls(api: KioskApi, sessionId: string, calls
     result.responses.push({ id: call.id, name: call.name, response: reply.body });
     if (reply.status === 200) {
       const body = reply.body as VoiceFunctionResult;
-      result.cart = body.cart;
+      if (body.cart) result.cart = body.cart;
       if (body.action === 'SHOW_CHECKOUT') result.showCheckout = true;
     }
   }

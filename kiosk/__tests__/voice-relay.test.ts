@@ -59,4 +59,16 @@ describe('UC-04 relayFunctionCalls', () => {
       expect(api.calls.callVoiceFunction).toHaveLength(1);
     }
   });
+
+  it('AC18: 200 ที่ไม่มี cart ไม่เขียนทับ cart ก่อนหน้า', async () => {
+    let n = 0;
+    const api = fakeApi({
+      callVoiceFunction: async () => ({ status: 200, body: n++ === 0 ? { action: 'SHOW_CART', cart } : { action: 'SHOW_CART' } }),
+    });
+    const result = await relayFunctionCalls(api, 'vs-1', [
+      { id: 'a', name: 'view_cart', args: {} },
+      { id: 'b', name: 'view_cart', args: {} },
+    ]);
+    expect(result.cart).toEqual(cart);
+  });
 });
