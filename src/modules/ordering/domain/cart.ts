@@ -56,6 +56,11 @@ export class Cart {
   get total() { return this._lines.reduce((sum, line) => sum.plus(line.lineTotal), Money.ZERO); }
   get expiresAt() { return new Date(this.lastActivityAt.getTime() + Cart.IDLE_TIMEOUT_MINUTES * 60_000); }
 
+  // R7, R8 ให้ context อื่นถามว่ายังแก้ไขได้ไหม
+  ensureOpen(now: Date): void {
+    this.assertModifiable(now);
+  }
+
   addLine({ lineId, item, optionChoiceIds, quantity }: AddLine, now: Date): void {
     this.assertModifiable(now);
     const line = CartLine.start(lineId, item, optionChoiceIds, quantity);

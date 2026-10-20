@@ -1,9 +1,7 @@
 import express, { type Express } from 'express';
 import { JsonMenuRepository } from './modules/menu';
-import type { MenuLookup } from './modules/ordering/application/ports';
-import { PgUnitOfWork } from './modules/ordering/infrastructure/pg-unit-of-work';
-import { createOrderingModule } from './modules/ordering/module';
-import { createVoiceModule, JsonVoiceConsentTexts, type VoiceGateway } from './modules/voice';
+import { createOrderingModule, PgUnitOfWork, type MenuLookup } from './modules/ordering';
+import { createVoiceModule, JsonVoiceConsentTexts, PgVoiceSessionRepository, type VoiceGateway } from './modules/voice';
 import type { Clock } from './shared/clock';
 import type { Pool } from './shared/db';
 import { errorHandler } from './shared/http-errors';
@@ -16,7 +14,15 @@ export async function createApp({ pool, menuPath, clock, ids, voice }: { pool: P
   const menuRepository = await JsonMenuRepository.load(menuPath);
   const menu: MenuLookup = { findByIds: (menuItemIds) => menuRepository.findByIds(menuItemIds) };
   const ordering = createOrderingModule({ uow: new PgUnitOfWork(pool), menu, clock, ids });
-  const voiceModule = createVoiceModule({ consentTexts: new JsonVoiceConsentTexts(voice.consentPath), gateway: voice.gateway });
+  const voiceModule = createVoiceModule({
+    sessions: new PgVoiceSessionRepository(pool),
+    carts: ordering.cartAvailability,
+    consentTexts: new JsonVoiceConsentTexts(voice.consentPath),
+    gateway: voice.gateway,
+    clock,
+    ids,
+    kioskId: voice.kioskId,
+  });
 
   const app = express();
   app.use(express.json());

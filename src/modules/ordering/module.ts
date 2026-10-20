@@ -2,6 +2,7 @@ import type { Clock } from '../../shared/clock';
 import type { IdGenerator } from '../../shared/ids';
 import { AddCartLine } from './application/add-cart-line';
 import { ChangeCartLineQuantity } from './application/change-cart-line-quantity';
+import { CheckCartAvailability } from './application/check-cart-availability';
 import { CheckoutCart } from './application/checkout-cart';
 import { GetCart } from './application/get-cart';
 import type { MenuLookup, UnitOfWork } from './application/ports';
@@ -19,5 +20,6 @@ export function createOrderingModule(deps: { uow: UnitOfWork; menu: MenuLookup; 
     removeCartLine: new RemoveCartLine(deps),
     checkoutCart: new CheckoutCart(deps),
   };
-  return { useCases, router: orderingRoutes(useCases) };
+  const cartAvailability = new CheckCartAvailability(deps);
+  return { useCases, cartAvailability, router: orderingRoutes(useCases) };
 }
