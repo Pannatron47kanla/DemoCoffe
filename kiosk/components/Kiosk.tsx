@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, type KioskApi } from '../lib/api';
 import type { Cart, MenuItem, Order } from '../lib/types';
-import { EXPIRED_NOTICE_MS } from '../lib/timing';
+import { EXPIRED_NOTICE_MS, QUEUE_RETURN_MS } from '../lib/timing';
 import type { VoiceLink } from '../lib/voice-link';
 import { ConfirmScreen } from './ConfirmScreen';
 import { ItemOptionsDialog, type AddInput } from './ItemOptionsDialog';
@@ -39,20 +39,30 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
     }
   }
 
+  // กลับหน้าต้อนรับ: ล้างตะกร้า ออเดอร์ error และรายการที่มีปัญหา
+  function resetToWelcome() {
+    setExpired(false);
+    setError(null);
+    setCart(null);
+    setOrder(null);
+    setSelected(null);
+    setProblemLineIds([]);
+    setScreen('welcome');
+  }
+
   // ตะกร้าหมดอายุ: แสดงข้อความค้างไว้ครู่หนึ่งแล้วกลับหน้าต้อนรับ
   useEffect(() => {
     if (!expired) return;
-    const timer = setTimeout(() => {
-      setExpired(false);
-      setError(null);
-      setCart(null);
-      setOrder(null);
-      setSelected(null);
-      setProblemLineIds([]);
-      setScreen('welcome');
-    }, EXPIRED_NOTICE_MS);
+    const timer = setTimeout(resetToWelcome, EXPIRED_NOTICE_MS);
     return () => clearTimeout(timer);
   }, [expired]);
+
+  // หน้าคิว: กลับหน้าต้อนรับเองหลังครบเวลา
+  useEffect(() => {
+    if (screen !== 'queue') return;
+    const timer = setTimeout(resetToWelcome, QUEUE_RETURN_MS);
+    return () => clearTimeout(timer);
+  }, [screen]);
 
   async function start() {
     setBusy(true);
@@ -115,7 +125,7 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
     <main className="kiosk">
       {error ? <p className="error banner" role="alert">{error}</p> : null}
       {screen === 'queue' && order ? (
-        <QueueScreen order={order} />
+        <QueueScreen order={order} onDone={resetToWelcome} />
       ) : screen === 'welcome' || !cart ? (
         <WelcomeScreen onStart={start} busy={busy} />
       ) : screen === 'confirm' ? (
