@@ -2,7 +2,7 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { KioskApi } from '../lib/api';
+import { ApiError, type KioskApi } from '../lib/api';
 import type { VoiceSession } from '../lib/types';
 import { Kiosk } from '../components/Kiosk';
 import { fakeApi } from './support/fake-api';
@@ -217,5 +217,31 @@ describe('UC-04 voice failure', () => {
     await voiceOrdering(voiceApi(), fake);
     await act(async () => { fake.handlers().onFunctionCalls([{ id: 'fc1', name: 'view_cart', args: {} }]); });
     expect(await screen.findByText(NOTICE)).toBeTruthy();
+  });
+
+  it('AC20: startVoiceSession ได้ 503 ไม่เปิดเสียงและแสดงข้อความ', async () => {
+    const api = voiceApi({ startVoiceSession: async () => { throw new ApiError(503, { code: 'VOICE_UNAVAILABLE', message: 'เสียงปิดอยู่' }); } });
+    render(<Kiosk api={api} voice={fakeVoiceLink().link} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+    await user.click(await screen.findByRole('button', { name: 'ยินยอม' }));
+
+    expect(await screen.findByText(NOTICE)).toBeTruthy();
+    expect(screen.queryByText('เสียงปิดอยู่')).toBeNull();
+    expect(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' })).toBeTruthy();
+  });
+
+  it('AC20: connect reject ไม่เปิดเสียงและแสดงข้อความ', async () => {
+    const fake = fakeVoiceLink();
+    fake.link.connect = async () => { throw new Error('ws'); };
+    render(<Kiosk api={voiceApi()} voice={fake.link} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+    await user.click(await screen.findByRole('button', { name: 'ยินยอม' }));
+
+    expect(await screen.findByText(NOTICE)).toBeTruthy();
+    expect(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' })).toBeTruthy();
   });
 });

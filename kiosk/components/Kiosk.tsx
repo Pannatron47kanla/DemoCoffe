@@ -126,26 +126,36 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
     const { version } = consent;
     setConsent(null);
     await run(async () => {
-      const session = await api.startVoiceSession(cart.id, version);
-      // batch ที่ซ้อนกันต่อคิวทีละชุด เพื่อให้ response ถึง Gemini ตามลำดับ
-      let chain: Promise<void> = Promise.resolve();
-      const slot: { link?: VoiceLinkSession } = {};
-      const mine = () => slot.link !== undefined && voiceRef.current === slot.link;
-      const link = await voice.connect(session.connection, {
-        onFunctionCalls: (calls) => {
-          chain = chain.then(() => relay(session.id, calls, mine)).catch(() => voiceFailed(mine));
-        },
-        onTranscript: () => {},
-        onClose: (reason) => {
-          if (!mine()) return;
-          if (reason === 'error') voiceFailed(mine);
-          else stopVoice();
-        },
-      });
-      slot.link = link;
-      voiceRef.current = link;
-      setVoiceOn(true);
+      try {
+        await openVoice(cart.id, version);
+      } catch (e) {
+        // ตะกร้าหมดอายุใช้กฎเดียวกับทุกที่; อย่างอื่นคือเปิดเสียงไม่ได้ ให้แตะสั่งต่อ
+        if (e instanceof ApiError && e.body.code === 'CART_EXPIRED') throw e;
+        setError(VOICE_UNAVAILABLE);
+      }
     });
+  }
+
+  async function openVoice(cartId: string, version: string) {
+    const session = await api.startVoiceSession(cartId, version);
+    // batch ที่ซ้อนกันต่อคิวทีละชุด เพื่อให้ response ถึง Gemini ตามลำดับ
+    let chain: Promise<void> = Promise.resolve();
+    const slot: { link?: VoiceLinkSession } = {};
+    const mine = () => slot.link !== undefined && voiceRef.current === slot.link;
+    const link = await voice.connect(session.connection, {
+      onFunctionCalls: (calls) => {
+        chain = chain.then(() => relay(session.id, calls, mine)).catch(() => voiceFailed(mine));
+      },
+      onTranscript: () => {},
+      onClose: (reason) => {
+        if (!mine()) return;
+        if (reason === 'error') voiceFailed(mine);
+        else stopVoice();
+      },
+    });
+    slot.link = link;
+    voiceRef.current = link;
+    setVoiceOn(true);
   }
 
   // ส่ง function call ของ Gemini ต่อให้ api แล้วตอบกลับตามที่ได้รับ; fatal = ปิดเสียง กลับไปแตะจอ
