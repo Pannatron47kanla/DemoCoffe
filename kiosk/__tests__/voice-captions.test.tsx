@@ -107,5 +107,51 @@ describe('UC-04 captions', () => {
     await screen.findByRole('button', { name: '🎤 สั่งด้วยเสียง' });
     expect(screen.queryByText(/ขอลาเต้แก้วใหญ่/)).toBeNull();
   });
-});
 
+  it('AC22: ยืนยันสั่งสำเร็จขึ้นหน้าคิว ปิดเสียงและล้างคำบรรยายทันที', async () => {
+    const cart = { id: 'cart-1', status: 'OPEN', expiresAt: '2026-10-20T02:46:00Z', totalCups: 0, total: { amount: '0.00', currency: 'THB' }, lines: [] };
+    const { user, fake } = await voiceOrdering({
+      checkout: async () => order,
+      callVoiceFunction: async () => ({ status: 200, body: { action: 'SHOW_CHECKOUT', cart } }),
+    });
+    await say(fake, 'user', 'ขอลาเต้แก้วใหญ่');
+    await act(async () => { fake.handlers().onFunctionCalls([{ id: 'c1', name: 'request_checkout', args: {} }]); });
+    await user.click(await screen.findByRole('button', { name: 'ยืนยันสั่ง' }));
+    await screen.findByText('หมายเลขคิวของคุณ');
+
+    expect(fake.closed).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'เสร็จสิ้น' }));
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await screen.findByRole('button', { name: '🎤 สั่งด้วยเสียง' });
+    expect(screen.queryByText(/ขอลาเต้แก้วใหญ่/)).toBeNull();
+  });
+
+  it('AC22: กลับหน้าต้อนรับระหว่างกำลังเปิดเสียงไม่เปิดเสียงค้าง', async () => {
+    vi.useFakeTimers();
+    const closes: boolean[] = [];
+    let release: () => void = () => {};
+    const link = {
+      connect: () => new Promise<{ sendFunctionResponses: () => void; close: () => void }>((res) => {
+        release = () => res({ sendFunctionResponses: () => {}, close: () => { closes.push(true); } });
+      }),
+    };
+    const expired = new ApiError(409, { code: 'CART_EXPIRED', message: 'ตะกร้าหมดอายุ กรุณาเริ่มสั่งใหม่' });
+    const api = fakeApi({ startVoiceSession: async () => session, addLine: async () => { throw expired; } });
+    render(<Kiosk api={api} voice={link} />);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+    await user.click(await screen.findByRole('button', { name: 'ยินยอม' }));
+    await user.click(screen.getByRole('button', { name: /^เอสเพรสโซ่/ }));
+    await user.click(screen.getByRole('button', { name: 'ใส่ตะกร้า' }));
+    await screen.findByText('ตะกร้าหมดอายุ กรุณาเริ่มสั่งใหม่');
+    await act(async () => { await vi.advanceTimersByTimeAsync(3_000); });
+    expect(screen.getByRole('button', { name: 'เริ่มสั่ง' })).toBeTruthy();
+
+    await act(async () => { release(); });
+    expect(closes).toEqual([true]);
+    expect(screen.queryByRole('button', { name: '⏹ หยุดเสียง' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    expect(await screen.findByRole('button', { name: '🎤 สั่งด้วยเสียง' })).toBeTruthy();
+  });
+});

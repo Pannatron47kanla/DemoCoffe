@@ -238,6 +238,8 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
     await run(async () => {
       try {
         setOrder(await api.checkout(cart.id, keyRef.current as string));
+        stopVoice(); // ออเดอร์เสร็จแล้ว ปิดเสียงและไมค์ ล้างคำบรรยาย (R6)
+        setCaptions([]);
         setScreen('queue');
       } catch (e) {
         if (!(e instanceof ApiError)) throw e;
