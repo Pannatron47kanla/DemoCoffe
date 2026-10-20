@@ -6,6 +6,7 @@ import { errorHandler } from '../../../../../shared/http-errors';
 import { fixedClock } from '../../../../../shared/clock';
 import { sequentialIds } from '../../../../../shared/ids';
 import { VoiceConsentText } from '../../../domain/voice-consent-text';
+import { VoiceSession } from '../../../domain/voice-session';
 import { FakeCartAvailability, FakeConsentTexts, FakeVoiceCartOperations, FakeVoiceGateway, FakeVoiceMenu, InMemoryVoiceSessions } from '../../../application/__tests__/fakes';
 import { createVoiceModule } from '../../../module';
 import { unavailableVoiceGateway } from '../../../index';
@@ -460,5 +461,78 @@ describe('voice HTTP routes', () => {
     expect(res.status).toBe(409);
     expect(res.body.code).toBe('CART_ALREADY_CHECKED_OUT');
     expectMatchesSpec('post', FN_CALLS, res);
+  });
+
+  describe('AC16: ชื่อฟังก์ชันหรือ args ผิดรูปแบบ', () => {
+    const SESSION = '00000000-0000-4000-8000-000000000016';
+    const LINE = '3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51';
+    let ops: FakeVoiceCartOperations;
+    let voiceApp: express.Express;
+
+    beforeEach(async () => {
+      ops = new FakeVoiceCartOperations();
+      await sessions.add(VoiceSession.consent({
+        id: SESSION, cartId: CART, kioskId: 'kiosk-1', shownVersion: 'voice-demo-v1',
+        current: consentTexts.text, now: new Date('2026-10-20T02:30:00Z'),
+      }));
+      voiceApp = express();
+      voiceApp.use(express.json());
+      voiceApp.use(createVoiceModule({
+        sessions, carts, consentTexts, gateway, menu: new FakeVoiceMenu(), cartOperations: ops,
+        clock: fixedClock('2026-10-20T02:30:00Z'), ids: sequentialIds(), kioskId: 'kiosk-1',
+      }).router);
+      voiceApp.use(errorHandler);
+    });
+
+    it.each([
+      [{}, ['name']],
+      [{ name: 'fly' }, ['name']],
+      [{ name: 42, args: {} }, ['name']],
+      [{ name: 'add_to_cart', args: {} }, ['menuItemId', 'quantity']],
+      [{ name: 'add_to_cart', args: { menuItemId: 'latte', quantity: 1.5 } }, ['quantity']],
+      [{ name: 'add_to_cart', args: { menuItemId: 'latte', quantity: '1' } }, ['quantity']],
+      [{ name: 'add_to_cart', args: { menuItemId: '', quantity: 1 } }, ['menuItemId']],
+      [{ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: 'size-l', quantity: 1 } }, ['optionChoiceIds']],
+      [{ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: [1], quantity: 1 } }, ['optionChoiceIds']],
+      [{ name: 'change_quantity', args: { lineId: 'x', quantity: 2 } }, ['lineId']],
+      [{ name: 'change_quantity', args: { lineId: LINE } }, ['quantity']],
+      [{ name: 'remove_from_cart', args: {} }, ['lineId']],
+      [{ name: 'view_cart', args: null }, ['args']],
+      [{ name: 'view_cart', args: [] }, ['args']],
+      [{ name: 'view_cart', args: 'x' }, ['args']],
+    ])('AC16: body %j → 400 VALIDATION_ERROR fields %j', async (body, fields) => {
+      const res = await request(voiceApp).post(`/voice/sessions/${SESSION}/function-calls`).send(body);
+
+      expect(res.status).toBe(400);
+      expect(res.body.code).toBe('VALIDATION_ERROR');
+      expect(res.body.details.fields).toEqual(fields);
+      expectMatchesSpec('post', FN_CALLS, res);
+      expect(ops.calls).toEqual([]);
+    });
+
+    it('AC16: ไม่ส่ง body เลย → 400 VALIDATION_ERROR fields name', async () => {
+      const res = await request(voiceApp).post(`/voice/sessions/${SESSION}/function-calls`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.details.fields).toEqual(['name']);
+      expectMatchesSpec('post', FN_CALLS, res);
+      expect(ops.calls).toEqual([]);
+    });
+
+    it('AC16: ไม่ส่ง args ถือเป็น {} view_cart ผ่าน และฟิลด์เกินถูกทิ้ง', async () => {
+      const res = await request(voiceApp).post(`/voice/sessions/${SESSION}/function-calls`).send({ name: 'view_cart', args: { extra: 1 } });
+      const bare = await request(voiceApp).post(`/voice/sessions/${SESSION}/function-calls`).send({ name: 'request_checkout' });
+
+      expect(res.status).toBe(200);
+      expect(bare.status).toBe(200);
+    });
+
+    it('AC16: sessionId ไม่ใช่ uuid พร้อม body ผิด → 404 VOICE_SESSION_NOT_FOUND ไม่ใช่ 400', async () => {
+      const res = await request(voiceApp).post('/voice/sessions/abc/function-calls').send({ name: 'fly' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.code).toBe('VOICE_SESSION_NOT_FOUND');
+      expectMatchesSpec('post', FN_CALLS, res);
+    });
   });
 });
