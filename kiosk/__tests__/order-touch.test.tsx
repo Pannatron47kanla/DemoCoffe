@@ -1,0 +1,32 @@
+// @vitest-environment jsdom
+import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, describe, expect, it } from 'vitest';
+import { Kiosk } from '../components/Kiosk';
+import { fakeApi } from './support/fake-api';
+import { fakeVoiceLink } from './support/fake-voice-link';
+
+afterEach(cleanup);
+
+function setup(overrides = {}) {
+  const api = fakeApi(overrides);
+  const voice = fakeVoiceLink();
+  render(<Kiosk api={api} voice={voice.link} />);
+  return { api, voice, user: userEvent.setup() };
+}
+
+describe('สั่งด้วยการแตะ', () => {
+  it('AC8: แตะเริ่มสั่งสร้างตะกร้าหนึ่งใบและแสดงทุกเมนู มัทฉะลาเต้หมดแตะไม่ได้', async () => {
+    const { api, user } = setup();
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+
+    for (const name of ['ลาเต้', 'อเมริกาโน่', 'เอสเพรสโซ่', 'มัทฉะลาเต้']) {
+      expect(await screen.findByText(name)).toBeTruthy();
+    }
+    expect(api.calls.startCart.length).toBe(1);
+    expect(screen.getByText('55.00')).toBeTruthy();
+    const matcha = screen.getByRole('button', { name: /มัทฉะลาเต้/ }) as HTMLButtonElement;
+    expect(matcha.disabled).toBe(true);
+    expect(matcha.textContent).toContain('หมด');
+  });
+});
