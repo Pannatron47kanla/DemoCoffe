@@ -245,3 +245,28 @@ describe('UC-04 voice failure', () => {
     expect(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' })).toBeTruthy();
   });
 });
+
+describe('UC-04 voice stop and reopen', () => {
+  it('AC21: แตะหยุดเสียงปิดการเชื่อมต่อ ตะกร้าไม่เปลี่ยน', async () => {
+    const { user, api, fake } = await voiceOrdering();
+    await user.click(screen.getByRole('button', { name: '⏹ หยุดเสียง' }));
+
+    expect(fake.closed).toBe(true);
+    expect(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' })).toBeTruthy();
+    for (const m of ['startCart', 'addLine', 'changeQuantity', 'removeLine', 'checkout'] as const) {
+      expect(api.calls[m]).toHaveLength(m === 'startCart' ? 1 : 0);
+    }
+  });
+
+  it('AC21: function call ที่ค้างอยู่ตอนหยุดเสียง ไม่ส่งคำตอบและไม่แตะตะกร้า', async () => {
+    let release: () => void = () => {};
+    const api = voiceApi({ callVoiceFunction: () => new Promise((res) => { release = () => res({ status: 503, body: {} }); }) });
+    const { user, fake } = await voiceOrdering(api);
+    await act(async () => { fake.handlers().onFunctionCalls([{ id: 'a', name: 'view_cart', args: {} }]); });
+    await user.click(screen.getByRole('button', { name: '⏹ หยุดเสียง' }));
+    await act(async () => { release(); });
+
+    expect(fake.responses).toHaveLength(0);
+    expect(screen.queryByText(NOTICE)).toBeNull();
+  });
+});
