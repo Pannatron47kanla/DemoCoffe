@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, type KioskApi } from '../lib/api';
 import type { Cart, MenuItem, Order } from '../lib/types';
-import { EXPIRED_NOTICE_MS, QUEUE_RETURN_MS } from '../lib/timing';
+import { EXPIRED_NOTICE_MS, IDLE_PROMPT_MS, QUEUE_RETURN_MS } from '../lib/timing';
 import type { VoiceLink } from '../lib/voice-link';
+import { useIdle } from '../lib/use-idle';
 import { ConfirmScreen } from './ConfirmScreen';
+import { IdlePrompt } from './IdlePrompt';
 import { ItemOptionsDialog, type AddInput } from './ItemOptionsDialog';
 import { OrderScreen } from './OrderScreen';
 import { QueueScreen } from './QueueScreen';
@@ -26,6 +28,7 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
 
   const [expired, setExpired] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [idlePrompt, setIdlePrompt] = useState(false);
 
   // แสดง message จาก API ตามที่ได้รับ; error อื่น (เช่น เครือข่าย) แสดงข้อความกลาง
   async function run(action: () => Promise<void>) {
@@ -42,6 +45,7 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
   // กลับหน้าต้อนรับ: ล้างตะกร้า ออเดอร์ error และรายการที่มีปัญหา
   function resetToWelcome() {
     setExpired(false);
+    setIdlePrompt(false);
     setError(null);
     setCart(null);
     setOrder(null);
@@ -63,6 +67,10 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
     const timer = setTimeout(resetToWelcome, QUEUE_RETURN_MS);
     return () => clearTimeout(timer);
   }, [screen]);
+
+  // ไม่แตะนาน: ถามว่ายังสั่งอยู่ไหม (หน้าสั่งและหน้ายืนยัน) enabled จะถูกปิดเมื่อเปิดเสียงในงานถัดไป
+  const idleEnabled = (screen === 'order' || screen === 'confirm') && !idlePrompt;
+  useIdle(() => setIdlePrompt(true), IDLE_PROMPT_MS, idleEnabled);
 
   async function start() {
     setBusy(true);
@@ -133,6 +141,7 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
       ) : (
         <OrderScreen menu={menu} cart={cart} onSelect={setSelected} onChangeQuantity={changeQuantity} onRemove={remove} onConfirm={goConfirm} problemLineIds={problemLineIds} />
       )}
+      {idlePrompt ? <IdlePrompt onStay={() => setIdlePrompt(false)} onTimeout={resetToWelcome} /> : null}
       {selected ? <ItemOptionsDialog item={selected} onAdd={add} onClose={() => setSelected(null)} /> : null}
     </main>
   );
