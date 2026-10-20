@@ -15,6 +15,8 @@ import { OrderScreen } from './OrderScreen';
 import { QueueScreen } from './QueueScreen';
 import { WelcomeScreen } from './WelcomeScreen';
 
+const VOICE_UNAVAILABLE = 'ใช้เสียงไม่ได้ตอนนี้ สั่งด้วยการแตะได้เลย';
+
 type Screen = 'welcome' | 'order' | 'confirm' | 'queue';
 
 export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID() }: { api: KioskApi; voice: VoiceLink; newIdempotencyKey?: () => string }) {
@@ -127,30 +129,44 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
       const session = await api.startVoiceSession(cart.id, version);
       // batch ที่ซ้อนกันต่อคิวทีละชุด เพื่อให้ response ถึง Gemini ตามลำดับ
       let chain: Promise<void> = Promise.resolve();
-      voiceRef.current = await voice.connect(session.connection, {
+      const slot: { link?: VoiceLinkSession } = {};
+      const mine = () => slot.link !== undefined && voiceRef.current === slot.link;
+      const link = await voice.connect(session.connection, {
         onFunctionCalls: (calls) => {
-          chain = chain.then(() => relay(session.id, calls));
+          chain = chain.then(() => relay(session.id, calls, mine)).catch(() => voiceFailed(mine));
         },
         onTranscript: () => {},
-        onClose: () => {
-          voiceRef.current = null;
-          setVoiceOn(false);
+        onClose: (reason) => {
+          if (!mine()) return;
+          if (reason === 'error') voiceFailed(mine);
+          else stopVoice();
         },
       });
+      slot.link = link;
+      voiceRef.current = link;
       setVoiceOn(true);
     });
   }
 
   // ส่ง function call ของ Gemini ต่อให้ api แล้วตอบกลับตามที่ได้รับ; fatal = ปิดเสียง กลับไปแตะจอ
-  async function relay(sessionId: string, calls: FunctionCall[]) {
+  // mine() = เซสชันนี้ยังเป็นเซสชันปัจจุบัน (หยุดแล้วเปิดใหม่ ของเก่าต้องไม่แตะของใหม่)
+  async function relay(sessionId: string, calls: FunctionCall[], mine: () => boolean) {
+    if (!mine()) return;
     const result = await relayFunctionCalls(api, sessionId, calls);
+    if (!mine()) return;
     if (result.fatal) {
-      stopVoice();
+      voiceFailed(mine);
       return;
     }
     if (result.cart) setCart(result.cart);
     if (result.showCheckout && screenRef.current !== 'confirm') goConfirm();
     voiceRef.current?.sendFunctionResponses(result.responses);
+  }
+
+  function voiceFailed(mine: () => boolean) {
+    if (!mine()) return;
+    stopVoice();
+    setError(VOICE_UNAVAILABLE);
   }
 
   function stopVoice() {

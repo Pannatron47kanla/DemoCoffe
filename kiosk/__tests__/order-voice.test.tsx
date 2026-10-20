@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { KioskApi } from '../lib/api';
 import type { VoiceSession } from '../lib/types';
 import { Kiosk } from '../components/Kiosk';
 import { fakeApi } from './support/fake-api';
@@ -50,10 +51,11 @@ const session: VoiceSession = {
   consentedAt: '2026-10-20T02:00:00Z',
   connection: { token: 'tok-1', model: 'gemini-live', startBefore: '2026-10-20T02:01:00Z' },
 };
-const voiceApi = () =>
+const voiceApi = (overrides: Partial<KioskApi> = {}) =>
   fakeApi({
     getConsentText: async () => ({ version: 'voice-demo-v1', text: 'ข้อความยินยอม' }),
     startVoiceSession: async () => session,
+    ...overrides,
   });
 
 describe('UC-04 voice session', () => {
@@ -170,5 +172,50 @@ describe('UC-04 voice checkout', () => {
     await act(async () => { releases[1]?.(); });
     await waitFor(() => expect(fake.responses).toHaveLength(2));
     expect(fake.responses.map((r) => (r[0] as { id: string }).id)).toEqual(['a', 'b']);
+  });
+});
+
+const NOTICE = 'ใช้เสียงไม่ได้ตอนนี้ สั่งด้วยการแตะได้เลย';
+
+describe('UC-04 voice failure', () => {
+  async function withLine(api: ReturnType<typeof voiceApi>, fake = fakeVoiceLink()) {
+    const ctx = await voiceOrdering(api, fake);
+    await ctx.user.click(screen.getByRole('button', { name: /^เอสเพรสโซ่/ }));
+    await ctx.user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'ใส่ตะกร้า' }));
+    await waitFor(() => expect(screen.getAllByText(/เอสเพรสโซ่/).length).toBeGreaterThan(1));
+    return ctx;
+  }
+
+  it('AC19: function call ได้ 503 ปิดเสียงแสดงข้อความ แตะสั่งต่อได้', async () => {
+    const api = voiceApi({ callVoiceFunction: async () => ({ status: 503, body: { code: 'VOICE_UNAVAILABLE' } }) });
+    const { fake, user } = await withLine(api);
+    await act(async () => { fake.handlers().onFunctionCalls([{ id: 'fc1', name: 'view_cart', args: {} }]); });
+
+    expect(await screen.findByText(NOTICE)).toBeTruthy();
+    expect(fake.closed).toBe(true);
+    expect(fake.responses).toHaveLength(0);
+    expect(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' })).toBeTruthy();
+    expect(screen.getAllByText(/เอสเพรสโซ่/).length).toBeGreaterThan(1);
+    await user.click(screen.getByRole('button', { name: /^อเมริกาโน่/ }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('AC19: การเชื่อมต่อหลุด onClose error ปิดเสียงแสดงข้อความ ตะกร้าเดิมยังอยู่', async () => {
+    const { fake } = await withLine(voiceApi());
+    await act(async () => { fake.handlers().onClose('error'); });
+
+    expect(await screen.findByText(NOTICE)).toBeTruthy();
+    expect(fake.closed).toBe(true);
+    expect(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' })).toBeTruthy();
+    expect(screen.getAllByText(/เอสเพรสโซ่/).length).toBeGreaterThan(1);
+  });
+
+  it('AC19: ส่งคำตอบกลับ Gemini ล้ม ถือเป็นเสียงล้ม ไม่มี unhandled rejection', async () => {
+    const fake = fakeVoiceLink();
+    const original = fake.link.connect;
+    fake.link.connect = async (c, h) => ({ ...(await original(c, h)), sendFunctionResponses: () => { throw new Error('socket'); } });
+    await voiceOrdering(voiceApi(), fake);
+    await act(async () => { fake.handlers().onFunctionCalls([{ id: 'fc1', name: 'view_cart', args: {} }]); });
+    expect(await screen.findByText(NOTICE)).toBeTruthy();
   });
 });
