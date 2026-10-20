@@ -27,6 +27,21 @@ describe('buildVoiceInstructions', () => {
     expect(text).toMatch(/size-m M(,|$)/m); // ส่วนต่าง 0 ไม่มี +ราคาต่อท้าย
   });
 
+  it('AC2: คำสั่งระบบมีข้อปฏิบัติตาม R5', () => {
+    const text = buildVoiceInstructions(menu);
+
+    const rules: Record<string, string> = {
+      'พูดภาษาไทยสั้นๆ': 'พูดภาษาไทยสั้นๆ',
+      'ถามตัวเลือกที่ต้องเลือกก่อนเรียก add_to_cart': 'ถามลูกค้าก่อนเรียก add_to_cart',
+      'ไม่เดาเมนูที่ไม่มี': 'ห้ามเดาเมนู',
+      'พูดราคาตามผลของฟังก์ชันเท่านั้น': 'ผลลัพธ์ของฟังก์ชันเท่านั้น',
+      'เรียก request_checkout แล้วบอกให้แตะยืนยันบนจอ': 'แตะยืนยันบนจอ',
+      'ห้ามยืนยันออเดอร์เอง': 'ห้ามยืนยันออเดอร์เอง',
+    };
+    for (const [rule, keyword] of Object.entries(rules)) expect(text, rule).toContain(keyword);
+    expect(text).toContain('request_checkout');
+  });
+
   it('AC1: เมนูเดียวกันได้ข้อความเดียวกัน', () => {
     expect(buildVoiceInstructions(menu)).toBe(buildVoiceInstructions(menu));
   });

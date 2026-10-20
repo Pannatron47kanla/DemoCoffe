@@ -60,6 +60,15 @@ describe('StartVoiceSession', () => {
     expect(gateway.setups[1]!.systemInstruction).not.toContain('ลาเต้');
   });
 
+  it('AC2: คำสั่งระบบไม่มี cartId หรือ kioskId', async () => {
+    await start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' });
+
+    const text = gateway.setups[0]!.systemInstruction;
+    expect(text).not.toContain(CART_ID);
+    expect(text).not.toContain('cartId');
+    expect(text).not.toContain('kiosk-1');
+  });
+
   it('AC4: ตะกร้ามีเซสชันแล้ว ได้เซสชันเดิม ข้อมูลเชื่อมต่อใหม่ ไม่มีบันทึกเพิ่ม', async () => {
     const first = await start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' });
     clock.advance(5 * 60_000);
