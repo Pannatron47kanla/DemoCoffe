@@ -36,8 +36,14 @@ describe('UC-02 เริ่มเซสชันเสียง (e2e)', () => {
   });
 
   it('AC2, AC4, AC8: เริ่มตะกร้า → ข้อความยินยอม → ยินยอม 201 → กดซ้ำ 200 → ยืนยันออเดอร์ → ยินยอมอีก 409', async () => {
-    const cartId = (await request(app).post('/carts')).body.id;
-    await request(app).post(`/carts/${cartId}/lines`).send({ menuItemId: 'latte', optionChoiceIds: ['size-l', 'milk-oat'], quantity: 1 }).expect(200);
+    const started = await request(app).post('/carts');
+    expect(started.status).toBe(201);
+    expectMatchesSpec('post', '/carts', started);
+    const cartId = started.body.id;
+
+    const added = await request(app).post(`/carts/${cartId}/lines`).send({ menuItemId: 'latte', optionChoiceIds: ['size-l', 'milk-oat'], quantity: 1 });
+    expect(added.status).toBe(200);
+    expectMatchesSpec('post', '/carts/{cartId}/lines', added);
 
     const text = await request(app).get('/voice/consent-text');
     expect(text.status).toBe(200);
@@ -49,10 +55,12 @@ describe('UC-02 เริ่มเซสชันเสียง (e2e)', () => {
 
     const again = await request(app).post('/voice/sessions').send({ cartId, consentTextVersion: 'voice-demo-v1' });
     expect(again.status).toBe(200);
+    expect(again.body.id).toBe(first.body.id);
     expectMatchesSpec('post', '/voice/sessions', again);
 
     const placed = await request(app).post(`/carts/${cartId}/checkout`).set('Idempotency-Key', 'k-voice-e2e');
     expect(placed.status).toBe(201);
+    expectMatchesSpec('post', '/carts/{cartId}/checkout', placed);
 
     const late = await request(app).post('/voice/sessions').send({ cartId, consentTextVersion: 'voice-demo-v1' });
     expect(late.status).toBe(409);
