@@ -202,6 +202,22 @@ describe('ordering HTTP routes', () => {
     await expectError(await addLatte(cartId), 'post', '/carts/{cartId}/lines', 409, 'CART_EXPIRED');
   });
 
+  describe('GET /orders/{orderId}', () => {
+    it('AC2: GET /orders/{orderId} ตอบคิว รายการ ยอด ไม่มี cartId', async () => {
+      const cartId = await newCart();
+      await addLatte(cartId);
+      const placed = await request(app).post(`/carts/${cartId}/checkout`).set('Idempotency-Key', 'k-123');
+
+      const res = await request(app).get(`/orders/${placed.body.id}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({ id: placed.body.id, queueNumber: 1, total: { amount: '160.00', currency: 'THB' } });
+      expect(res.body).not.toHaveProperty('cartId');
+      expect(res.body).not.toHaveProperty('statusPageUrl');
+      expectMatchesSpec('get', '/orders/{orderId}', res);
+    });
+  });
+
   describe('POST /carts/{cartId}/checkout', () => {
     const checkout = (cartId: string, key = 'k-123') => request(app).post(`/carts/${cartId}/checkout`).set('Idempotency-Key', key);
 

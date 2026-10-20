@@ -18,6 +18,7 @@ export class InMemoryOrdering implements UnitOfWork {
         save: async (cart) => void this.carts.set(cart.id, structuredClone(cart.toState())),
       },
       orders: {
+        findById: async (id) => (this.orders.has(id) ? Order.restore(structuredClone(this.orders.get(id)!)) : null),
         findByIdempotencyKey: async (key) => {
           const state = [...this.orders.values()].find((o) => o.idempotencyKey === key);
           return state ? Order.restore(structuredClone(state)) : null;

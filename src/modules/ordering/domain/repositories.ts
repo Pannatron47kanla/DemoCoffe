@@ -9,6 +9,7 @@ export interface CartRepository {
 }
 
 export interface OrderRepository {
+  findById(id: string): Promise<Order | null>;
   findByIdempotencyKey(key: string): Promise<Order | null>;
   add(order: Order): Promise<void>;
 }

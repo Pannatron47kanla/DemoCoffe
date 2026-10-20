@@ -116,6 +116,17 @@ describe('PgOrderRepository', () => {
     expect(loaded?.businessDay.value).toBe('2026-10-19');
   });
 
+  it('AC2: findById คืนออเดอร์พร้อมรายการตามลำดับ', async () => {
+    const cart = cartWithLattes(id(40));
+    cart.addLine({ lineId: id(41), item: americano, optionChoiceIds: ['size-m'], quantity: 1 }, T0);
+    const order = await placeOrder(cart, id(400), 'k-find');
+
+    const loaded = await uow.run(({ orders }) => orders.findById(order.id));
+
+    expect(loaded?.toState()).toEqual(order.toState());
+    expect(await uow.run(({ orders }) => orders.findById(id(999)))).toBeNull();
+  });
+
   it('AC18: ไม่มี key คืน null', async () => {
     expect(await uow.run(({ orders }) => orders.findByIdempotencyKey('k-none'))).toBeNull();
   });

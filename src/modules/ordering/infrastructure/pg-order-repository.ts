@@ -7,14 +7,22 @@ import type { OrderRepository } from '../domain/repositories';
 export class PgOrderRepository implements OrderRepository {
   constructor(private readonly db: DbClient) {}
 
-  async findByIdempotencyKey(key: string): Promise<Order | null> {
+  findById(id: string): Promise<Order | null> {
+    return this.findOne('id', id);
+  }
+
+  findByIdempotencyKey(key: string): Promise<Order | null> {
+    return this.findOne('idempotency_key', key);
+  }
+
+  private async findOne(where: 'id' | 'idempotency_key', value: string): Promise<Order | null> {
     const { rows: [order] } = await this.db.query<{
       id: string; cart_id: string; idempotency_key: string; status: OrderStatus;
       business_day: string; queue_number: number; placed_at: Date;
     }>(
       `SELECT id, cart_id, idempotency_key, status, business_day, queue_number, placed_at
-         FROM orders WHERE idempotency_key = $1`,
-      [key],
+         FROM orders WHERE ${where} = $1`,
+      [value],
     );
     if (!order) return null;
 

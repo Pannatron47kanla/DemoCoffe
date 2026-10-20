@@ -5,9 +5,10 @@ import type { AddCartLine } from '../../application/add-cart-line';
 import type { ChangeCartLineQuantity } from '../../application/change-cart-line-quantity';
 import type { CheckoutCart } from '../../application/checkout-cart';
 import type { GetCart } from '../../application/get-cart';
+import type { GetOrder } from '../../application/get-order';
 import type { RemoveCartLine } from '../../application/remove-cart-line';
 import type { StartCart } from '../../application/start-cart';
-import { toCartJson, toOrderJson } from './mapper';
+import { toCartJson, toCustomerOrderJson, toOrderJson } from './mapper';
 
 export interface OrderingUseCases {
   startCart: StartCart;
@@ -16,6 +17,7 @@ export interface OrderingUseCases {
   changeCartLineQuantity: ChangeCartLineQuantity;
   removeCartLine: RemoveCartLine;
   checkoutCart: CheckoutCart;
+  getOrder: GetOrder;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -95,6 +97,10 @@ export function orderingRoutes(useCases: OrderingUseCases): Router {
       }
       throw error;
     }
+  });
+
+  router.get('/orders/:orderId', async (req, res) => {
+    res.json(toCustomerOrderJson(await useCases.getOrder.execute(String(req.params.orderId))));
   });
 
   return router;

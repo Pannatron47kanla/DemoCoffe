@@ -31,9 +31,13 @@ export function toCartJson({ cart, items }: CartView) {
 }
 
 export function toOrderJson(order: Order) {
+  return { ...toCustomerOrderJson(order), cartId: order.cartId };
+}
+
+// ออเดอร์ที่ลูกค้าเห็นบนหน้าสถานะ ไม่มี cartId (R10)
+export function toCustomerOrderJson(order: Order) {
   return {
     id: order.id,
-    cartId: order.cartId,
     status: order.status,
     queueNumber: order.queueNumber.value,
     placedAt: order.placedAt.toISOString(),
