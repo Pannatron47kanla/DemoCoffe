@@ -11,6 +11,8 @@ servers:
 tags:
   - name: ordering
     description: UC-01 สั่งเครื่องดื่มที่ตู้
+  - name: voice
+    description: UC-02 ยินยอมและเริ่มสั่งด้วยเสียง
 
 paths:
   /carts:
@@ -157,6 +159,57 @@ paths:
         '409': { $ref: '#/components/responses/CheckoutRuleViolation' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /voice/consent-text:
+    get:
+      tags: [voice]
+      operationId: getVoiceConsentText
+      summary: ข้อความยินยอมเรื่องเสียงเวอร์ชันปัจจุบัน (AC1, AC10, AC15)
+      responses:
+        '200':
+          description: ข้อความยินยอมปัจจุบัน อ่านจาก data/voice-consent.json
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VoiceConsentText' }
+              examples: { DemoConsentText: { $ref: '#/components/examples/DemoConsentText' } }
+        '503': { $ref: '#/components/responses/VoiceUnavailable' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /voice/sessions:
+    post:
+      tags: [voice]
+      operationId: startVoiceSession
+      summary: ยินยอมและรับข้อมูลเชื่อมต่อเสียง (AC2–AC13)
+      description: |
+        ตะกร้าที่ยังไม่มีเซสชันเสียง → บันทึกความยินยอมแล้วตอบ 201 (AC2)
+        ตะกร้าที่มีเซสชันแล้ว → ตอบ 200 เซสชันเดิมพร้อมข้อมูลเชื่อมต่อใหม่ ไม่บันทึกเพิ่ม (AC4, AC13)
+        บันทึกความยินยอมก่อนขอโทเคน ถ้าขอโทเคนไม่สำเร็จตอบ 503 แต่บันทึกยังอยู่ (AC11)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StartVoiceSessionRequest' }
+            example:
+              cartId: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60
+              consentTextVersion: voice-demo-v1
+      responses:
+        '201':
+          description: ยินยอมครั้งแรกของตะกร้านี้ สร้างเซสชันเสียง (AC2)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VoiceSession' }
+              examples: { NewVoiceSession: { $ref: '#/components/examples/NewVoiceSession' } }
+        '200':
+          description: ตะกร้านี้มีเซสชันแล้ว คืนเซสชันเดิมพร้อมข้อมูลเชื่อมต่อใหม่ (AC4)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VoiceSession' }
+              examples: { NewVoiceSession: { $ref: '#/components/examples/NewVoiceSession' } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/VoiceRuleViolation' }
+        '503': { $ref: '#/components/responses/VoiceUnavailable' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
 components:
   parameters:
     CartId:
@@ -275,6 +328,53 @@ components:
           items: { $ref: '#/components/schemas/OrderLine' }
         total: { $ref: '#/components/schemas/Money' }
 
+    VoiceConsentText:
+      type: object
+      required: [version, text]
+      properties:
+        version: { type: string, example: voice-demo-v1 }
+        text:
+          type: string
+          description: ต้องบอกว่าเสียงส่งไป Google อาจใช้ปรับปรุงบริการ ให้คนตรวจอ่านได้ และไม่รับประกันว่าประมวลผลในสิงคโปร์ (R10)
+          example: เสียงของคุณจะถูกส่งไปยัง Google เพื่อแปลงเป็นคำสั่ง Google อาจนำไปใช้ปรับปรุงบริการและให้เจ้าหน้าที่ตรวจอ่านได้ และไม่รับประกันว่าจะประมวลผลในสิงคโปร์ ระบบไม่เก็บไฟล์เสียงและไม่ผูกกับตัวคุณ
+
+    StartVoiceSessionRequest:
+      type: object
+      required: [cartId, consentTextVersion]
+      properties:
+        cartId: { type: string, format: uuid, example: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60 }
+        consentTextVersion:
+          type: string
+          minLength: 1
+          description: เวอร์ชันข้อความที่ตู้แสดง ไม่ใช่ปัจจุบันตอบ 409 CONSENT_TEXT_OUTDATED (R2)
+          example: voice-demo-v1
+
+    VoiceConnection:
+      type: object
+      description: ข้อมูลชั่วคราวให้ตู้เปิด Gemini Live ตรง ใช้ได้ครั้งเดียว (R6)
+      required: [token, model, startBefore]
+      properties:
+        token:
+          type: string
+          description: ephemeral token ของ Gemini ไม่ใช่ API key ถาวร (R7)
+          example: auth_tokens/3f9a1c7e2b
+        model: { type: string, description: รุ่นที่โทเคนล็อกไว้ (VOICE_MODEL), example: gemini-3.8-live }
+        startBefore:
+          type: string
+          format: date-time
+          description: ต้องเปิดการเชื่อมต่อก่อนเวลานี้ (1 นาที, R6)
+          example: '2026-10-20T02:31:00Z'
+
+    VoiceSession:
+      type: object
+      required: [id, cartId, consentTextVersion, consentedAt, connection]
+      properties:
+        id: { type: string, format: uuid, example: 5e1d7c3a-2b4f-4a6e-9c8d-1f0e2d3c4b5a }
+        cartId: { type: string, format: uuid, example: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60 }
+        consentTextVersion: { type: string, example: voice-demo-v1 }
+        consentedAt: { type: string, format: date-time, example: '2026-10-20T02:30:00Z' }
+        connection: { $ref: '#/components/schemas/VoiceConnection' }
+
     Error:
       type: object
       required: [code, message]
@@ -296,6 +396,8 @@ components:
             - CART_EMPTY
             - PRICE_CHANGED
             - IDEMPOTENCY_KEY_CONFLICT
+            - CONSENT_TEXT_OUTDATED
+            - VOICE_UNAVAILABLE
             - INTERNAL_ERROR
           example: CART_LIMIT_REACHED
         message: { type: string, example: ตะกร้ามีได้ไม่เกิน 20 แก้ว }
@@ -305,6 +407,7 @@ components:
             MENU_ITEM_UNAVAILABLE ตอนยืนยัน → `lineIds` (AC21)
             PRICE_CHANGED → `cart` ที่คิดราคาใหม่แล้ว (AC22)
             VALIDATION_ERROR → `fields`
+            CONSENT_TEXT_OUTDATED → `currentVersion` (AC9)
           properties:
             lineIds:
               type: array
@@ -315,6 +418,7 @@ components:
               type: array
               items: { type: string }
               example: [menuItemId]
+            currentVersion: { type: string, example: voice-demo-v2 }
 
   examples:
     CartWithLatte:
@@ -353,6 +457,23 @@ components:
             unitPrice: { amount: '80.00', currency: THB }
             lineTotal: { amount: '160.00', currency: THB }
         total: { amount: '160.00', currency: THB }
+
+    DemoConsentText:
+      summary: ข้อความยินยอมของเดโม (AC1)
+      value:
+        version: voice-demo-v1
+        text: เสียงของคุณจะถูกส่งไปยัง Google เพื่อแปลงเป็นคำสั่ง Google อาจนำไปใช้ปรับปรุงบริการและให้เจ้าหน้าที่ตรวจอ่านได้ และไม่รับประกันว่าจะประมวลผลในสิงคโปร์ ระบบไม่เก็บไฟล์เสียงและไม่ผูกกับตัวคุณ
+    NewVoiceSession:
+      summary: ยินยอมตอน 09:30 (AC2)
+      value:
+        id: 5e1d7c3a-2b4f-4a6e-9c8d-1f0e2d3c4b5a
+        cartId: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60
+        consentTextVersion: voice-demo-v1
+        consentedAt: '2026-10-20T02:30:00Z'
+        connection:
+          token: auth_tokens/3f9a1c7e2b
+          model: gemini-3.8-live
+          startBefore: '2026-10-20T02:31:00Z'
 
   responses:
     ValidationError:
@@ -420,6 +541,25 @@ components:
                     totalCups: 2
                     total: { amount: '120.00', currency: THB }
             IdempotencyKeyConflict: { value: { code: IDEMPOTENCY_KEY_CONFLICT, message: key นี้ใช้กับตะกร้าอื่นแล้ว } }
+    VoiceRuleViolation:
+      description: เริ่มเสียงไม่ได้ (AC7–AC9) ไม่มีบันทึกความยินยอม
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            CartExpired: { value: { code: CART_EXPIRED, message: ตะกร้าหมดอายุ กรุณาเริ่มสั่งใหม่ } }
+            CartAlreadyCheckedOut: { value: { code: CART_ALREADY_CHECKED_OUT, message: ตะกร้านี้ยืนยันแล้ว } }
+            ConsentTextOutdated:
+              value:
+                code: CONSENT_TEXT_OUTDATED
+                message: ข้อความยินยอมมีการเปลี่ยนแปลง กรุณาอ่านอีกครั้ง
+                details: { currentVersion: voice-demo-v2 }
+    VoiceUnavailable:
+      description: ใช้เสียงไม่ได้ (ปิดไว้ ไม่มี API key หรือขอโทเคนจาก Google ไม่สำเร็จ) ตู้กลับไปสั่งด้วยการแตะ (AC10, AC11, AC15)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: VOICE_UNAVAILABLE, message: ตอนนี้สั่งด้วยเสียงไม่ได้ กรุณาสั่งด้วยการแตะ }
     InternalError:
       description: ระบบขัดข้องที่ไม่ได้คาดไว้ ตู้แสดงให้ติดต่อพนักงาน
       content:

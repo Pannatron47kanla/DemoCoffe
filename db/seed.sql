@@ -2,7 +2,7 @@
 -- เวลาอิง now() เพื่อให้ตะกร้าเปิดยังไม่หมดอายุตอนลองเล่น; วันทำการ = วันที่ Asia/Bangkok
 -- id ขึ้นต้น: c = cart, a = cart line, e = order, b = order line; เลขท้าย = ชุด S<n>
 
-TRUNCATE order_lines, orders, cart_lines, carts, queue_counters;
+TRUNCATE voice_sessions, order_lines, orders, cart_lines, carts, queue_counters;
 
 -- S1 ตะกร้าว่าง → AC1, AC2, AC6, AC7, AC8 (matcha-latte), AC9, AC10 (latte + whip-cream), AC20
 INSERT INTO carts (id, status, last_activity_at) VALUES

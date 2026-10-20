@@ -26,7 +26,7 @@ export async function startTestDatabase(): Promise<TestDatabase> {
     pool,
     container,
     reset: async () => {
-      await pool.query('TRUNCATE order_lines, orders, cart_lines, carts, queue_counters');
+      await pool.query('TRUNCATE voice_sessions, order_lines, orders, cart_lines, carts, queue_counters');
     },
     stop: async () => {
       await pool.end();
