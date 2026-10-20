@@ -39,6 +39,8 @@ context ของเฟสถัดไป (payment, face-identity, membership, t
 | voice | เซสชันเสียง | การสั่งด้วยเสียงของตะกร้าหนึ่งใบ เก็บหลักฐานความยินยอม (เวลา ตู้ เวอร์ชันข้อความ) ไม่ผูกกับตัวบุคคล | `VoiceSession` (aggregate root) |
 | voice | ข้อมูลเชื่อมต่อเสียง | ข้อมูลชั่วคราวให้ตู้เปิดเซสชัน Gemini Live ใช้เริ่มได้ภายในเวลาจำกัด | `VoiceConnection` |
 | voice | ข้อความยินยอมเรื่องเสียง | ข้อความที่แสดงก่อนเริ่มพูด มีเวอร์ชัน | `VoiceConsentText` |
+| voice | การเรียกฟังก์ชันเสียง | function call หนึ่งครั้งจาก Gemini (ชื่อ + args) ที่เซิร์ฟเวอร์ทำกับตะกร้าของเซสชัน | `VoiceFunctionCall` |
+| voice | คำสั่งระบบของ Gemini | ข้อความที่ล็อกในโทเคน มีเมนูปัจจุบันและข้อปฏิบัติ (UC-03 R4, R5) | `VoiceInstructions` |
 
 ## การคุยข้าม context
 
@@ -47,7 +49,9 @@ context ของเฟสถัดไป (payment, face-identity, membership, t
 | ordering | ราคา ตัวเลือก และสถานะพร้อมขายของเมนู | `MenuLookup` (port ใน `ordering/application/ports.ts`) ← `JsonMenuRepository` จาก `menu/index.ts` ต่อสายใน `src/app.ts` |
 | voice | ตะกร้ายังเปิดและไม่หมดอายุไหม (UC-02 R5) | `CartAvailability` (port ใน `voice/application/ports.ts`) ← `CheckCartAvailability` ของ ordering ผ่าน `ordering/index.ts` (`createOrderingModule().cartAvailability`) |
 | voice | ออกโทเคนชั่วคราวของ Gemini Live | `VoiceGateway` (port) ← `AiStudioVoiceGateway` ใน `voice/infrastructure` (ถ้าไม่มี key ใช้ `unavailableVoiceGateway`) เลือกด้วย `VOICE_PROVIDER`: `ai-studio` (เดโม) / `vertex` (ลูกค้าจริง) |
-| UI ตู้ | สั่งผ่านเสียง | Gemini ส่ง function call ให้ UI ตู้ แล้ว UI เรียก API ตะกร้าของ ordering ชุดเดียวกับการแตะจอ (UC-03) |
+| voice | แก้ตะกร้าตาม function call ของ Gemini ด้วยกฎ UC-01 (UC-03 R1) | `VoiceCartOperations` (port ใน `voice/application/ports.ts`) ← use case ของ ordering ผ่าน `ordering/index.ts` |
+| voice | เมนูปัจจุบันสำหรับคำสั่งระบบของ Gemini (UC-03 R4) | `VoiceMenu` (port ใน `voice/application/ports.ts`) ← `JsonMenuRepository` จาก `menu/index.ts` |
+| UI ตู้ | สั่งผ่านเสียง | Gemini ส่ง function call ให้ UI ตู้ UI ส่งต่อตรงๆ ที่ `POST /voice/sessions/{sessionId}/function-calls` ไม่ตีความเอง แล้วส่ง response กลับให้ Gemini (UC-03) |
 
 ## กฎตัวเลขทางธุรกิจ
 

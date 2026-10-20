@@ -12,7 +12,7 @@ tags:
   - name: ordering
     description: UC-01 สั่งเครื่องดื่มที่ตู้
   - name: voice
-    description: UC-02 ยินยอมและเริ่มสั่งด้วยเสียง
+    description: UC-02 ยินยอมและเริ่มสั่งด้วยเสียง, UC-03 สั่งด้วยเสียง
 
 paths:
   /carts:
@@ -210,6 +210,86 @@ paths:
         '503': { $ref: '#/components/responses/VoiceUnavailable' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /voice/sessions/{sessionId}/function-calls:
+    parameters:
+      - $ref: '#/components/parameters/VoiceSessionId'
+    post:
+      tags: [voice]
+      operationId: callVoiceFunction
+      summary: ส่งต่อ function call จาก Gemini ให้เซิร์ฟเวอร์ทำกับตะกร้าของเซสชัน (UC-03 AC3–AC18)
+      description: |
+        ตู้ส่ง function call ของ Gemini มาตรงๆ ไม่ตีความเอง ตะกร้ามาจากเซสชันเสียงเท่านั้น (R2)
+        ทุกฟังก์ชันผ่านกฎ UC-01 ชุดเดียวกับการแตะจอ ผิดกฎตอบ status และ code เดียวกับ UC-01 (R7)
+        ตู้ส่ง body ของ 200/400/404/409 กลับให้ Gemini เป็น function response; 503/500 ให้ปิดเสียงแล้วกลับไปแตะจอ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VoiceFunctionCall' }
+            examples:
+              AddToCart:
+                value: { name: add_to_cart, args: { menuItemId: latte, optionChoiceIds: [size-l, milk-oat], quantity: 2 } }
+              ChangeQuantity:
+                value: { name: change_quantity, args: { lineId: 3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51, quantity: 4 } }
+              RemoveFromCart:
+                value: { name: remove_from_cart, args: { lineId: 3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51 } }
+              ViewCart:
+                value: { name: view_cart, args: {} }
+              RequestCheckout:
+                value: { name: request_checkout, args: {} }
+      responses:
+        '200':
+          description: ทำสำเร็จ คืนตะกร้าล่าสุด และสิ่งที่ตู้ต้องแสดง
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VoiceFunctionResult' }
+              examples:
+                CartUpdated:
+                  summary: add_to_cart / change_quantity / remove_from_cart / view_cart (AC3–AC6)
+                  value:
+                    action: SHOW_CART
+                    cart:
+                      id: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60
+                      status: OPEN
+                      expiresAt: '2026-10-20T02:46:00Z'
+                      lines:
+                        - id: 3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51
+                          menuItemId: latte
+                          name: ลาเต้
+                          options:
+                            - { choiceId: size-l, groupName: ขนาด, name: L, priceDelta: { amount: '10.00', currency: THB } }
+                            - { choiceId: milk-oat, groupName: นม, name: นมโอ๊ต, priceDelta: { amount: '15.00', currency: THB } }
+                          quantity: 2
+                          unitPrice: { amount: '80.00', currency: THB }
+                          lineTotal: { amount: '160.00', currency: THB }
+                      totalCups: 2
+                      total: { amount: '160.00', currency: THB }
+                ShowCheckout:
+                  summary: request_checkout ตะกร้ายัง OPEN ไม่มีออเดอร์ (AC7)
+                  value:
+                    action: SHOW_CHECKOUT
+                    cart:
+                      id: 7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60
+                      status: OPEN
+                      expiresAt: '2026-10-20T02:46:00Z'
+                      lines:
+                        - id: 3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51
+                          menuItemId: latte
+                          name: ลาเต้
+                          options:
+                            - { choiceId: size-l, groupName: ขนาด, name: L, priceDelta: { amount: '10.00', currency: THB } }
+                            - { choiceId: milk-oat, groupName: นม, name: นมโอ๊ต, priceDelta: { amount: '15.00', currency: THB } }
+                          quantity: 2
+                          unitPrice: { amount: '80.00', currency: THB }
+                          lineTotal: { amount: '160.00', currency: THB }
+                      totalCups: 2
+                      total: { amount: '160.00', currency: THB }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/VoiceCallNotFound' }
+        '409': { $ref: '#/components/responses/VoiceCallRuleViolation' }
+        '503': { $ref: '#/components/responses/VoiceUnavailable' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
 components:
   parameters:
     CartId:
@@ -224,6 +304,14 @@ components:
       required: true
       schema: { type: string, format: uuid }
       example: 3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51
+
+    VoiceSessionId:
+      name: sessionId
+      in: path
+      required: true
+      description: id ของเซสชันเสียงจาก POST /voice/sessions
+      schema: { type: string, format: uuid }
+      example: 5e1d7c3a-2b4f-4a6e-9c8d-1f0e2d3c4b5a
 
   schemas:
     Money:
@@ -375,6 +463,45 @@ components:
         consentedAt: { type: string, format: date-time, example: '2026-10-20T02:30:00Z' }
         connection: { $ref: '#/components/schemas/VoiceConnection' }
 
+    VoiceFunctionCall:
+      type: object
+      description: function call จาก Gemini ส่งต่อตรงๆ ชื่อและ args ต้องตรงกับฟังก์ชันที่ล็อกไว้ในโทเคน (UC-03)
+      required: [name]
+      properties:
+        name:
+          type: string
+          enum: [add_to_cart, change_quantity, remove_from_cart, view_cart, request_checkout]
+          example: add_to_cart
+        args:
+          type: object
+          default: {}
+          description: |
+            add_to_cart → `menuItemId` (ต้องมี), `optionChoiceIds` (ไม่บังคับ), `quantity` (ต้องมี จำนวนเต็ม)
+            change_quantity → `lineId`, `quantity`
+            remove_from_cart → `lineId`
+            view_cart, request_checkout → ไม่มี
+            ผิดรูปแบบตอบ 400 VALIDATION_ERROR (AC16) ช่วงของจำนวนเป็นกฎ UC-01 ตอบ 409
+          properties:
+            menuItemId: { type: string, example: latte }
+            optionChoiceIds:
+              type: array
+              items: { type: string }
+              example: [size-l, milk-oat]
+            quantity: { type: integer, example: 2 }
+            lineId: { type: string, format: uuid, example: 3b9c2e10-8f4a-4d6b-b1c2-0e9f8a7d6c51 }
+          example: { menuItemId: latte, optionChoiceIds: [size-l, milk-oat], quantity: 2 }
+
+    VoiceFunctionResult:
+      type: object
+      required: [action, cart]
+      properties:
+        action:
+          type: string
+          enum: [SHOW_CART, SHOW_CHECKOUT]
+          description: SHOW_CHECKOUT เมื่อเรียก request_checkout ตู้เปิดหน้าสรุปให้ลูกค้าแตะยืนยัน (R3)
+          example: SHOW_CART
+        cart: { $ref: '#/components/schemas/Cart' }
+
     Error:
       type: object
       required: [code, message]
@@ -398,6 +525,7 @@ components:
             - IDEMPOTENCY_KEY_CONFLICT
             - CONSENT_TEXT_OUTDATED
             - VOICE_UNAVAILABLE
+            - VOICE_SESSION_NOT_FOUND
             - INTERNAL_ERROR
           example: CART_LIMIT_REACHED
         message: { type: string, example: ตะกร้ามีได้ไม่เกิน 20 แก้ว }
@@ -408,6 +536,7 @@ components:
             PRICE_CHANGED → `cart` ที่คิดราคาใหม่แล้ว (AC22)
             VALIDATION_ERROR → `fields`
             CONSENT_TEXT_OUTDATED → `currentVersion` (AC9)
+            OPTION_REQUIRED → `groupId` (UC-03 AC9)
           properties:
             lineIds:
               type: array
@@ -419,6 +548,7 @@ components:
               items: { type: string }
               example: [menuItemId]
             currentVersion: { type: string, example: voice-demo-v2 }
+            groupId: { type: string, example: size }
 
   examples:
     CartWithLatte:
@@ -554,6 +684,28 @@ components:
                 code: CONSENT_TEXT_OUTDATED
                 message: ข้อความยินยอมมีการเปลี่ยนแปลง กรุณาอ่านอีกครั้ง
                 details: { currentVersion: voice-demo-v2 }
+    VoiceCallNotFound:
+      description: ไม่พบเซสชันเสียง เมนู หรือรายการในตะกร้าของเซสชันนี้ (UC-03 AC10, AC13, AC14)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            VoiceSessionNotFound: { value: { code: VOICE_SESSION_NOT_FOUND, message: ไม่พบเซสชันเสียง } }
+            MenuItemNotFound: { value: { code: MENU_ITEM_NOT_FOUND, message: ไม่พบเมนูนี้ } }
+            CartLineNotFound: { value: { code: CART_LINE_NOT_FOUND, message: ไม่พบรายการในตะกร้า } }
+    VoiceCallRuleViolation:
+      description: ผิดกฎ UC-01 ระหว่างสั่งด้วยเสียง (UC-03 AC8, AC9, AC11, AC12, AC15)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            CartEmpty: { value: { code: CART_EMPTY, message: ตะกร้ายังว่าง } }
+            OptionRequired: { value: { code: OPTION_REQUIRED, message: กรุณาเลือกตัวเลือกที่จำเป็น, details: { groupId: size } } }
+            MenuItemUnavailable: { value: { code: MENU_ITEM_UNAVAILABLE, message: เมนูนี้หมดแล้ว } }
+            CartLimitReached: { value: { code: CART_LIMIT_REACHED, message: ตะกร้ามีได้ไม่เกิน 20 แก้ว } }
+            QuantityOutOfRange: { value: { code: QUANTITY_OUT_OF_RANGE, message: จำนวนต่อรายการต้องอยู่ระหว่าง 1–10 แก้ว } }
+            CartExpired: { value: { code: CART_EXPIRED, message: ตะกร้าหมดอายุ กรุณาเริ่มสั่งใหม่ } }
+            CartAlreadyCheckedOut: { value: { code: CART_ALREADY_CHECKED_OUT, message: ตะกร้านี้ยืนยันแล้ว } }
     VoiceUnavailable:
       description: ใช้เสียงไม่ได้ (ปิดไว้ ไม่มี API key หรือขอโทเคนจาก Google ไม่สำเร็จ) ตู้กลับไปสั่งด้วยการแตะ (AC10, AC11, AC15)
       content:
