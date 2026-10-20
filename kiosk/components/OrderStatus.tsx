@@ -1,25 +1,37 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { KioskApi } from '../lib/api';
+import { ApiError, type KioskApi } from '../lib/api';
 import type { CustomerOrder } from '../lib/types';
 
 type Props = { api: KioskApi; orderId: string | null };
 
+const NOT_FOUND = 'ไม่พบออเดอร์';
+const FAILURE = 'ระบบขัดข้อง กรุณาติดต่อพนักงาน';
+
 export function OrderStatus({ api, orderId }: Props) {
   const [order, setOrder] = useState<CustomerOrder | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (orderId === null) return;
     let active = true;
-    api.getOrder(orderId).then((o) => {
-      if (active) setOrder(o);
-    });
+    api.getOrder(orderId).then(
+      (o) => {
+        if (active) setOrder(o);
+      },
+      (e: unknown) => {
+        if (!active) return;
+        setError(e instanceof ApiError && e.status === 404 ? NOT_FOUND : FAILURE);
+      },
+    );
     return () => {
       active = false;
     };
   }, [api, orderId]);
 
+  if (orderId === null) return <main className="status-page"><p className="error">{NOT_FOUND}</p></main>;
+  if (error) return <main className="status-page"><p className="error">{error}</p></main>;
   if (!order) return <main className="status-page" />;
 
   return (

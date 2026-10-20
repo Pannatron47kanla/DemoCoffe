@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
+import { ApiError } from '../lib/api';
 import { OrderStatus } from '../components/OrderStatus';
 import type { CustomerOrder } from '../lib/types';
 import { fakeApi } from './support/fake-api';
@@ -39,5 +40,31 @@ describe('OrderStatus', () => {
     expect(screen.getByText('x2')).toBeTruthy();
     expect(screen.getAllByText('160.00').length).toBeGreaterThan(0);
     expect(api.calls.getOrder[0]).toEqual([queue17.id]);
+  });
+
+  it('AC29: ไม่พบออเดอร์หรือไม่มี order ใน URL แสดง ไม่พบออเดอร์', async () => {
+    const none = fakeApi();
+    render(<OrderStatus api={none} orderId={null} />);
+    expect(await screen.findByText('ไม่พบออเดอร์')).toBeTruthy();
+    expect(none.calls.getOrder).toEqual([]);
+    cleanup();
+
+    const missing = fakeApi({
+      getOrder: async () => {
+        throw new ApiError(404, { code: 'ORDER_NOT_FOUND', message: 'ไม่พบออเดอร์' });
+      },
+    });
+    render(<OrderStatus api={missing} orderId="nope" />);
+    expect(await screen.findByText('ไม่พบออเดอร์')).toBeTruthy();
+  });
+
+  it('AC29: ข้อผิดพลาดอื่นแสดง ระบบขัดข้อง กรุณาติดต่อพนักงาน', async () => {
+    const api = fakeApi({
+      getOrder: async () => {
+        throw new Error('network');
+      },
+    });
+    render(<OrderStatus api={api} orderId="o-1" />);
+    expect(await screen.findByText('ระบบขัดข้อง กรุณาติดต่อพนักงาน')).toBeTruthy();
   });
 });
