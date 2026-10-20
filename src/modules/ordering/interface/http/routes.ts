@@ -65,7 +65,7 @@ function idempotencyKeyOf(req: Request): string {
   return key;
 }
 
-export function orderingRoutes(useCases: OrderingUseCases): Router {
+export function orderingRoutes(useCases: OrderingUseCases, publicBaseUrl: string): Router {
   const router = Router();
 
   router.post('/carts', async (_req, res) => {
@@ -95,7 +95,7 @@ export function orderingRoutes(useCases: OrderingUseCases): Router {
     const idempotencyKey = idempotencyKeyOf(req);
     try {
       const { order, replayed } = await useCases.checkoutCart.execute({ cartId, idempotencyKey });
-      res.status(replayed ? 200 : 201).json(toOrderJson(order));
+      res.status(replayed ? 200 : 201).json(toOrderJson(order, publicBaseUrl));
     } catch (error) {
       // AC22 แนบตะกร้าที่คิดราคาใหม่แล้วให้ตู้แสดงยอดใหม่ทันที
       if (error instanceof DomainError && error.code === 'PRICE_CHANGED') {

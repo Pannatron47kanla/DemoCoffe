@@ -10,10 +10,10 @@ import type { IdGenerator } from './shared/ids';
 // ประกอบทุก module; ordering ได้ menu ผ่าน port MenuLookup เท่านั้น
 type VoiceOptions = { gateway: VoiceGateway; consentPath: string; kioskId: string };
 
-export async function createApp({ pool, menuPath, clock, ids, voice }: { pool: Pool; menuPath: string; clock: Clock; ids: IdGenerator; voice: VoiceOptions }): Promise<Express> {
+export async function createApp({ pool, menuPath, clock, ids, voice, publicBaseUrl }: { pool: Pool; menuPath: string; clock: Clock; ids: IdGenerator; voice: VoiceOptions; publicBaseUrl?: string | undefined }): Promise<Express> {
   const menuRepository = await JsonMenuRepository.load(menuPath);
   const menu: MenuLookup = { findByIds: (menuItemIds) => menuRepository.findByIds(menuItemIds) };
-  const ordering = createOrderingModule({ uow: new PgUnitOfWork(pool), menu, clock, ids });
+  const ordering = createOrderingModule({ uow: new PgUnitOfWork(pool), menu, clock, ids, publicBaseUrl });
   const voiceModule = createVoiceModule({
     sessions: new PgVoiceSessionRepository(pool),
     carts: ordering.cartAvailability,

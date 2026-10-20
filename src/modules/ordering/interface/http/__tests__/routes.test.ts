@@ -254,6 +254,33 @@ describe('ordering HTTP routes', () => {
       expectMatchesSpec('post', '/carts/{cartId}/checkout', again);
     });
 
+    describe('statusPageUrl', () => {
+      function appWith(publicBaseUrl?: string): express.Express {
+        const a = express();
+        a.use(express.json());
+        a.use(createOrderingModule({ uow, menu, clock, ids: sequentialIds(), publicBaseUrl }).router);
+        a.use(errorHandler);
+        return a;
+      }
+
+      it('AC4: checkout ตอบ statusPageUrl จาก PUBLIC_BASE_URL ทั้งตอนสร้างและยืนยันซ้ำ', async () => {
+        const custom = appWith('https://demo.example.com');
+        const cartId = (await request(custom).post('/carts')).body.id;
+        await request(custom).post(`/carts/${cartId}/lines`).send({ menuItemId: 'latte', optionChoiceIds: ['size-l', 'milk-oat'], quantity: 2 });
+        const send = () => request(custom).post(`/carts/${cartId}/checkout`).set('Idempotency-Key', 'k-123');
+
+        const created = await send();
+        const replayed = await send();
+
+        expect(created.status).toBe(201);
+        expect(created.body.statusPageUrl).toBe(`https://demo.example.com/q/?order=${created.body.id}`);
+        expectMatchesSpec('post', '/carts/{cartId}/checkout', created);
+        expect(replayed.status).toBe(200);
+        expect(replayed.body.statusPageUrl).toBe(`https://demo.example.com/q/?order=${created.body.id}`);
+        expectMatchesSpec('post', '/carts/{cartId}/checkout', replayed);
+      });
+    });
+
     it('AC19: ตะกร้ายืนยันแล้ว key ใหม่ตอบ 409 CART_ALREADY_CHECKED_OUT', async () => {
       const cartId = await newCart();
       await addLatte(cartId);

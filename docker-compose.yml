@@ -11,6 +11,7 @@ services:
       MENU_PATH: /app/data/menu.json
       HOST: 0.0.0.0 # ใน container ต้องฟังทุก interface; จำกัดที่ ports ด้านล่างแทน
       PORT: "3000"
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
       APP_ENV: development
       VOICE_ENABLED: "true"
       VOICE_PROVIDER: ai-studio

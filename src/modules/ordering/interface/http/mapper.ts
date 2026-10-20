@@ -30,8 +30,13 @@ export function toCartJson({ cart, items }: CartView) {
   };
 }
 
-export function toOrderJson(order: Order) {
-  return { ...toCustomerOrderJson(order), cartId: order.cartId };
+// ลิงก์หน้าสถานะบนมือถือ เป็นเรื่องการแสดงผล ไม่ใช่กฎธุรกิจ
+export function statusPageUrl(baseUrl: string, orderId: string): string {
+  return `${baseUrl}/q/?order=${orderId}`;
+}
+
+export function toOrderJson(order: Order, baseUrl: string) {
+  return { ...toCustomerOrderJson(order), cartId: order.cartId, statusPageUrl: statusPageUrl(baseUrl, order.id) };
 }
 
 // ออเดอร์ที่ลูกค้าเห็นบนหน้าสถานะ ไม่มี cartId (R10)

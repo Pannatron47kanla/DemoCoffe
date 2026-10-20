@@ -13,8 +13,10 @@ import { StartCart } from './application/start-cart';
 import { orderingRoutes } from './interface/http/routes';
 import { voiceCartOperations } from './interface/voice-cart';
 
+const DEFAULT_PUBLIC_BASE_URL = 'http://localhost:3000';
+
 // ต่อสายชิ้นส่วนของ ordering; main.ts ส่ง uow (Postgres) และ menu (จาก context menu) เข้ามา
-export function createOrderingModule(deps: { uow: UnitOfWork; menu: MenuLookup; clock: Clock; ids: IdGenerator }) {
+export function createOrderingModule(deps: { uow: UnitOfWork; menu: MenuLookup; clock: Clock; ids: IdGenerator; publicBaseUrl?: string | undefined }) {
   const useCases = {
     startCart: new StartCart(deps),
     getCart: new GetCart(deps),
@@ -27,5 +29,5 @@ export function createOrderingModule(deps: { uow: UnitOfWork; menu: MenuLookup; 
   const voiceUseCases = { ...useCases, checkCartReadyForCheckout: new CheckCartReadyForCheckout(deps) };
   const cartAvailability = new CheckCartAvailability(deps);
   const voiceCart = voiceCartOperations(voiceUseCases);
-  return { useCases, cartAvailability, voiceCart, router: orderingRoutes(useCases) };
+  return { useCases, cartAvailability, voiceCart, router: orderingRoutes(useCases, deps.publicBaseUrl ?? DEFAULT_PUBLIC_BASE_URL) };
 }

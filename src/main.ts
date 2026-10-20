@@ -10,6 +10,7 @@ const {
   MENU_PATH = 'data/menu.json',
   HOST = '127.0.0.1', // เฟส 1 ไม่มีคีย์ตู้ รับเฉพาะเครื่องเดียวกัน
   PORT = '3000',
+  PUBLIC_BASE_URL,
 } = process.env;
 
 // AC14: ตั้ง voice ผิด (เช่น AI Studio กับ production) ต้องหยุดก่อนต่อ DB
@@ -29,5 +30,6 @@ const gateway = voiceConfig.enabled && voiceConfig.apiKey
 const app = await createApp({
   pool: createPool(DATABASE_URL), menuPath: MENU_PATH, clock: systemClock, ids: randomIds,
   voice: { gateway, consentPath: voiceConfig.consentPath, kioskId: voiceConfig.kioskId },
+  ...(PUBLIC_BASE_URL ? { publicBaseUrl: PUBLIC_BASE_URL } : {}),
 });
 app.listen(Number(PORT), HOST, () => console.log(`api listening on http://${HOST}:${PORT}`));
