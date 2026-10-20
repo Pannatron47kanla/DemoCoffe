@@ -1,4 +1,5 @@
 import { Modality } from '@google/genai';
+import { DomainError } from '../../../shared/domain-error';
 import type { VoiceGateway } from '../application/ports';
 import { VOICE_CONNECTION, type VoiceConnection } from '../domain/voice-connection';
 
@@ -16,7 +17,7 @@ export class AiStudioVoiceGateway implements VoiceGateway {
   async issueConnection(now: Date): Promise<VoiceConnection> {
     const startBefore = new Date(now.getTime() + VOICE_CONNECTION.START_WITHIN_SECONDS * 1000);
     const expireTime = new Date(now.getTime() + VOICE_CONNECTION.TOKEN_LIFETIME_MINUTES * 60_000);
-    const created = await this.deps.tokens.create({
+    const created = await this.requestToken({
       config: {
         uses: 1,
         newSessionExpireTime: startBefore.toISOString(),
@@ -29,6 +30,26 @@ export class AiStudioVoiceGateway implements VoiceGateway {
         httpOptions: { apiVersion: 'v1alpha' },
       },
     });
-    return { token: created.name as string, model: this.deps.model, startBefore };
+    return { token: created, model: this.deps.model, startBefore };
+  }
+
+  // ขอโทเคนภายใน ISSUE_TIMEOUT_MS ทุกความล้มเหลวกลายเป็น VOICE_UNAVAILABLE (AC11)
+  private async requestToken(params: { config: Record<string, unknown> }): Promise<string> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('token request timed out')), VOICE_CONNECTION.ISSUE_TIMEOUT_MS);
+    });
+    try {
+      const created = await Promise.race([this.deps.tokens.create(params), timeout]);
+      if (typeof created.name !== 'string' || created.name === '') throw new Error('token response has no name');
+      return created.name;
+    } catch (error) {
+      // log เฉพาะ status/ข้อความ ห้ามมี API key
+      const status = (error as { status?: unknown }).status;
+      console.warn('voice token request failed:', status ?? (error instanceof Error ? error.message : 'unknown'));
+      throw new DomainError('VOICE_UNAVAILABLE');
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }

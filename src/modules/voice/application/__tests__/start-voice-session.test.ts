@@ -94,4 +94,16 @@ describe('StartVoiceSession', () => {
     expect(sessions.count()).toBe(0);
     expect(gateway.calls.length).toBe(0);
   });
+
+  it('AC11: ขอโทเคนไม่สำเร็จ บันทึกความยินยอมยังอยู่ กดอีกครั้งไม่ถามยินยอมซ้ำ', async () => {
+    gateway.fail = true;
+    await expect(start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' })).rejects.toMatchObject({ code: 'VOICE_UNAVAILABLE' });
+    expect(sessions.count()).toBe(1);
+
+    gateway.fail = false;
+    const again = await start.execute({ cartId: CART_ID, consentTextVersion: 'voice-demo-v1' });
+
+    expect(again.created).toBe(false);
+    expect(sessions.count()).toBe(1);
+  });
 });

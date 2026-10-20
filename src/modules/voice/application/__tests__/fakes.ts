@@ -18,6 +18,7 @@ export class FakeVoiceGateway implements VoiceGateway {
   calls: Date[] = [];
   async issueConnection(now: Date): Promise<VoiceConnection> {
     this.calls.push(now);
+    if (this.fail) throw new DomainError('VOICE_UNAVAILABLE');
     return {
       token: `auth_tokens/fake-${this.calls.length}`,
       model: 'gemini-3.8-live',

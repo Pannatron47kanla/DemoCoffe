@@ -1,5 +1,5 @@
 import { Modality } from '@google/genai';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AiStudioVoiceGateway, type AuthTokens } from '../ai-studio-voice-gateway';
 
 interface SentConfig {
@@ -25,6 +25,11 @@ function recordingTokens(reply: { name?: string } = { name: 'auth_tokens/abc' })
 }
 
 describe('AiStudioVoiceGateway', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
   it('AC12: ล็อกรุ่น gemini-3.8-live ตอบเป็นเสียง เปิด session resumption', async () => {
     const { tokens, calls } = recordingTokens();
     await new AiStudioVoiceGateway({ tokens, model: 'gemini-3.8-live' }).issueConnection(NOW);
@@ -63,5 +68,35 @@ describe('AiStudioVoiceGateway', () => {
       model: 'gemini-3.8-live',
       startBefore: new Date('2026-10-20T02:31:00Z'),
     });
+  });
+
+  it('AC11: Google ตอบ 429 → VOICE_UNAVAILABLE', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const tokens: AuthTokens = {
+      create: () => Promise.reject(Object.assign(new Error('Too Many Requests'), { status: 429 })),
+    };
+
+    await expect(new AiStudioVoiceGateway({ tokens, model: 'gemini-3.8-live' }).issueConnection(NOW))
+      .rejects.toMatchObject({ code: 'VOICE_UNAVAILABLE' });
+  });
+
+  it('AC11: เกิน 3 วินาที → VOICE_UNAVAILABLE', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const tokens: AuthTokens = { create: () => new Promise(() => {}) };
+
+    const result = new AiStudioVoiceGateway({ tokens, model: 'gemini-3.8-live' }).issueConnection(NOW);
+    const assertion = expect(result).rejects.toMatchObject({ code: 'VOICE_UNAVAILABLE' });
+    await vi.advanceTimersByTimeAsync(3000);
+
+    await assertion;
+  });
+
+  it('AC11: Google ตอบไม่มี name → VOICE_UNAVAILABLE', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { tokens } = recordingTokens({});
+
+    await expect(new AiStudioVoiceGateway({ tokens, model: 'gemini-3.8-live' }).issueConnection(NOW))
+      .rejects.toMatchObject({ code: 'VOICE_UNAVAILABLE' });
   });
 });

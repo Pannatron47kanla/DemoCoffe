@@ -161,4 +161,14 @@ describe('voice HTTP routes', () => {
     expect(sessions.count()).toBe(0);
     expect(gateway.calls.length).toBe(0);
   });
+
+  it('AC11: ขอโทเคนไม่สำเร็จ POST /voice/sessions ตอบ 503 VOICE_UNAVAILABLE', async () => {
+    gateway.fail = true;
+
+    const res = await request(app).post('/voice/sessions').send({ cartId: CART, consentTextVersion: 'voice-demo-v1' });
+
+    expect(res.status).toBe(503);
+    expect(res.body.code).toBe('VOICE_UNAVAILABLE');
+    expectMatchesSpec('post', '/voice/sessions', res);
+  });
 });
