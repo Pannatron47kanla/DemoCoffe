@@ -209,7 +209,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
       return;
     }
     if (result.cart) setCart(result.cart);
-    if (result.showCheckout && screenRef.current !== 'confirm') goConfirm();
+    if (result.showCheckout && screenRef.current === 'order') goConfirm();
     voiceRef.current?.sendFunctionResponses(result.responses);
   }
 

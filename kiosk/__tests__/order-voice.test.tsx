@@ -314,4 +314,25 @@ describe('UC-04 voice fixes', () => {
     expect(api.calls.startVoiceSession).toHaveLength(2);
     expect(fake.connections).toBe(2);
   });
+
+  it('AC18: request_checkout นอกหน้าสั่งไม่เปิดหน้ายืนยัน', async () => {
+    let release: () => void = () => {};
+    const api = voiceApi({
+      checkout: async () => ({ id: 'o-1', cartId: 'cart-1', status: 'PLACED', queueNumber: 17, placedAt: '2026-10-20T02:00:00Z', lines: [], total: { amount: '45.00', currency: 'THB' }, statusPageUrl: 'http://localhost:3000/q/?order=o-1' }),
+      callVoiceFunction: () => new Promise((res) => {
+        release = () => res({ status: 200, body: { action: 'SHOW_CHECKOUT', cart: { id: 'cart-1', status: 'OPEN', expiresAt: '2026-10-20T02:46:00Z', totalCups: 0, total: { amount: '0.00', currency: 'THB' }, lines: [] } } });
+      }),
+    });
+    const { user, fake } = await voiceOrdering(api);
+    await user.click(screen.getByRole('button', { name: /^เอสเพรสโซ่/ }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'ใส่ตะกร้า' }));
+    await act(async () => { fake.handlers().onFunctionCalls([{ id: 'a', name: 'request_checkout', args: {} }]); });
+    await user.click(await screen.findByRole('button', { name: 'ยืนยัน' }));
+    await user.click(await screen.findByRole('button', { name: 'ยืนยันสั่ง' }));
+    await screen.findByText('หมายเลขคิวของคุณ');
+    await act(async () => { release(); });
+
+    expect(screen.queryByRole('button', { name: 'ยืนยันสั่ง' })).toBeNull();
+    expect(screen.getByText('หมายเลขคิวของคุณ')).toBeTruthy();
+  });
 });
