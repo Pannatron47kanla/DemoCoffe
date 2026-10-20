@@ -7,7 +7,7 @@ import type { CartSnapshot, VoiceCartOperations } from './ports';
 export class CallVoiceFunction {
   constructor(private readonly deps: { sessions: VoiceSessionRepository; cartOperations: VoiceCartOperations }) {}
 
-  async execute(input: { sessionId: string; call: VoiceFunctionCall }): Promise<{ action: 'SHOW_CART'; cart: CartSnapshot }> {
+  async execute(input: { sessionId: string; call: VoiceFunctionCall }): Promise<{ action: 'SHOW_CART' | 'SHOW_CHECKOUT'; cart: CartSnapshot }> {
     const { sessions, cartOperations } = this.deps;
     const session = await sessions.findById(input.sessionId);
     if (!session) throw new DomainError('VOICE_SESSION_NOT_FOUND');
@@ -32,8 +32,11 @@ export class CallVoiceFunction {
         const cart = await cartOperations.view(session.cartId);
         return { action: 'SHOW_CART', cart };
       }
-      default:
-        throw new Error(`${call.name} not implemented`); // งานของ AC ถัดไป
+      case 'request_checkout': {
+        // R3: แค่ขอหน้ายืนยัน ไม่ยืนยันออเดอร์
+        const cart = await cartOperations.readyForCheckout(session.cartId);
+        return { action: 'SHOW_CHECKOUT', cart };
+      }
     }
   }
 }

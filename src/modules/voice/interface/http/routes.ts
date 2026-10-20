@@ -46,6 +46,8 @@ function functionCallBody(body: unknown): VoiceFunctionCall {
       return { name, lineId: a.lineId as string };
     case 'view_cart':
       return { name };
+    case 'request_checkout':
+      return { name };
     default:
       throw new RequestValidationError(['name']);
   }

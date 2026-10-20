@@ -232,7 +232,8 @@ describe('voice HTTP routes', () => {
   // ประกอบ ordering จริง (in-memory) กับ voice ใน app เดียว แล้วยินยอมเสียง
   async function composeWithConsent(clock = fixedClock('2026-10-20T02:30:00Z')) {
     const ids = sequentialIds();
-    const ordering = createOrderingModule({ uow: new InMemoryOrdering(), menu: new FakeMenu([latte, americano]), clock, ids });
+    const uow = new InMemoryOrdering();
+    const ordering = createOrderingModule({ uow, menu: new FakeMenu([latte, americano]), clock, ids });
     const voice = createVoiceModule({
       sessions, carts: ordering.cartAvailability, consentTexts, gateway, menu: new FakeVoiceMenu(),
       cartOperations: ordering.voiceCart, clock, ids, kioskId: 'kiosk-1',
@@ -245,7 +246,7 @@ describe('voice HTTP routes', () => {
     const cart = await request(both).post('/carts');
     const consent = await request(both).post('/voice/sessions').send({ cartId: cart.body.id, consentTextVersion: 'voice-demo-v1' });
     const call = (body: unknown) => request(both).post(`/voice/sessions/${consent.body.id}/function-calls`).send(body as object);
-    return { both, cart: cart.body, call };
+    return { both, cart: cart.body, call, uow };
   }
 
   it('AC4: POST /voice/sessions/{id}/function-calls change_quantity เปลี่ยนเป็น 4 แก้ว ตอบ 200 ตาม spec', async () => {
@@ -286,6 +287,23 @@ describe('voice HTTP routes', () => {
     expect(res.body.action).toBe('SHOW_CART');
     expect(res.body.cart.expiresAt).toBe(before.body.expiresAt);
     expect(res.body.cart.lines).toEqual(before.body.lines);
+    expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
+  });
+
+  it('AC7: request_checkout ตอบ SHOW_CHECKOUT ตะกร้ายัง OPEN ไม่มีออเดอร์', async () => {
+    const clock = fixedClock('2026-10-20T02:30:00Z');
+    const { both, cart, call, uow } = await composeWithConsent(clock);
+    await call({ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: ['size-l', 'milk-oat'], quantity: 2 } });
+    const before = await request(both).get(`/carts/${cart.id}`);
+    clock.advance(5 * 60 * 1000); // ถ้า request_checkout ต่ออายุ expiresAt จะเปลี่ยน
+
+    const res = await call({ name: 'request_checkout', args: {} });
+
+    expect(res.status).toBe(200);
+    expect(res.body.action).toBe('SHOW_CHECKOUT');
+    expect(res.body.cart.status).toBe('OPEN');
+    expect(res.body.cart.expiresAt).toBe(before.body.expiresAt);
+    expect(uow.orders.size).toBe(0);
     expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
   });
 });

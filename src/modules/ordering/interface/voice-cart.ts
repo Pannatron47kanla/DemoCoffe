@@ -1,5 +1,6 @@
 import type { AddCartLine } from '../application/add-cart-line';
 import type { ChangeCartLineQuantity } from '../application/change-cart-line-quantity';
+import type { CheckCartReadyForCheckout } from '../application/check-cart-ready-for-checkout';
 import type { GetCart } from '../application/get-cart';
 import type { RemoveCartLine } from '../application/remove-cart-line';
 import { toCartJson } from './http/mapper';
@@ -12,6 +13,7 @@ export function voiceCartOperations(useCases: {
   changeCartLineQuantity: ChangeCartLineQuantity;
   removeCartLine: RemoveCartLine;
   getCart: GetCart;
+  checkCartReadyForCheckout: CheckCartReadyForCheckout;
 }) {
   return {
     add: async (cartId: string, input: { menuItemId: string; optionChoiceIds: string[]; quantity: number }): Promise<Json> =>
@@ -21,8 +23,7 @@ export function voiceCartOperations(useCases: {
     remove: async (cartId: string, lineId: string): Promise<Json> =>
       toCartJson(await useCases.removeCartLine.execute({ cartId, lineId })),
     view: async (cartId: string): Promise<Json> => toCartJson(await useCases.getCart.execute(cartId)),
-    readyForCheckout: async (_cartId: string): Promise<Json> => {
-      throw new Error('not implemented');
-    },
+    readyForCheckout: async (cartId: string): Promise<Json> =>
+      toCartJson(await useCases.checkCartReadyForCheckout.execute(cartId)),
   };
 }

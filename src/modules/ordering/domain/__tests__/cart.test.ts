@@ -72,4 +72,15 @@ describe('Cart', () => {
     expect(() => cart.ensureOpen(new Date('2026-10-19T02:44:59Z'))).not.toThrow();
     expect(() => cart.ensureOpen(new Date('2026-10-19T02:45:00Z'))).toThrowError(expect.objectContaining({ code: 'CART_EXPIRED' }));
   });
+
+  it('AC7 (UC-03): ensureReadyForCheckout ไม่เปลี่ยนสถานะและไม่ต่ออายุ', () => {
+    const cart = cartWithLatteLOat(2);
+    const expiresAt = cart.expiresAt;
+
+    cart.ensureReadyForCheckout(new Date('2026-10-19T02:35:00Z'));
+
+    expect(cart.status).toBe('OPEN');
+    expect(cart.lines).toHaveLength(1);
+    expect(cart.expiresAt).toEqual(expiresAt);
+  });
 });

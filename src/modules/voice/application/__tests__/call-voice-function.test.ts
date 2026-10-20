@@ -58,4 +58,12 @@ describe('CallVoiceFunction', () => {
     expect(result.action).toBe('SHOW_CART');
     expect(result.cart).toEqual({ id: CART_ID });
   });
+
+  it("AC7: request_checkout เรียก cartOperations.readyForCheckout(cartId) และตอบ SHOW_CHECKOUT", async () => {
+    const result = await useCase.execute({ sessionId: SESSION_ID, call: { name: 'request_checkout' } });
+
+    expect(cartOperations.calls).toEqual([{ op: 'readyForCheckout', cartId: CART_ID, args: [] }]);
+    expect(result.action).toBe('SHOW_CHECKOUT');
+    expect(result.cart).toEqual({ id: CART_ID });
+  });
 });

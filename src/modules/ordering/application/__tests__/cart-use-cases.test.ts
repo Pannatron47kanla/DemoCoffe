@@ -5,6 +5,7 @@ import { sequentialIds } from '../../../../shared/ids';
 import { americano, latte } from '../../domain/__tests__/menu-fixtures';
 import { AddCartLine } from '../add-cart-line';
 import { ChangeCartLineQuantity } from '../change-cart-line-quantity';
+import { CheckCartReadyForCheckout } from '../check-cart-ready-for-checkout';
 import { GetCart } from '../get-cart';
 import { RemoveCartLine } from '../remove-cart-line';
 import { StartCart } from '../start-cart';
@@ -103,5 +104,19 @@ describe('cart use cases', () => {
 
     expect(view.cart.totalCups).toBe(2);
     expect(view.items.map((i) => i.id)).toEqual(['latte']);
+  });
+
+  it('AC7 (UC-03): CheckCartReadyForCheckout คืนตะกร้าโดยไม่บันทึกและไม่ต่ออายุ', async () => {
+    const { cart } = await start();
+    await addLatte(cart.id);
+    const before = (await new GetCart(deps).execute(cart.id)).cart.expiresAt;
+    clock.advance(5 * 60_000);
+
+    const view = await new CheckCartReadyForCheckout(deps).execute(cart.id);
+
+    expect(view.cart.status).toBe('OPEN');
+    expect(view.items.map((i) => i.id)).toEqual(['latte']);
+    expect((await new GetCart(deps).execute(cart.id)).cart.expiresAt).toEqual(before);
+    expect(uow.orders.size).toBe(0);
   });
 });

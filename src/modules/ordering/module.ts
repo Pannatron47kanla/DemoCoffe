@@ -3,6 +3,7 @@ import type { IdGenerator } from '../../shared/ids';
 import { AddCartLine } from './application/add-cart-line';
 import { ChangeCartLineQuantity } from './application/change-cart-line-quantity';
 import { CheckCartAvailability } from './application/check-cart-availability';
+import { CheckCartReadyForCheckout } from './application/check-cart-ready-for-checkout';
 import { CheckoutCart } from './application/checkout-cart';
 import { GetCart } from './application/get-cart';
 import type { MenuLookup, UnitOfWork } from './application/ports';
@@ -21,7 +22,8 @@ export function createOrderingModule(deps: { uow: UnitOfWork; menu: MenuLookup; 
     removeCartLine: new RemoveCartLine(deps),
     checkoutCart: new CheckoutCart(deps),
   };
+  const voiceUseCases = { ...useCases, checkCartReadyForCheckout: new CheckCartReadyForCheckout(deps) };
   const cartAvailability = new CheckCartAvailability(deps);
-  const voiceCart = voiceCartOperations(useCases);
+  const voiceCart = voiceCartOperations(voiceUseCases);
   return { useCases, cartAvailability, voiceCart, router: orderingRoutes(useCases) };
 }

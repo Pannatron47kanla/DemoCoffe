@@ -61,6 +61,11 @@ export class Cart {
     this.assertModifiable(now);
   }
 
+  // UC-03 R3: ถามว่าพร้อมไปหน้ายืนยันไหม ไม่เปลี่ยน state และไม่ต่ออายุ (ไม่แตะ status, lines, lastActivityAt)
+  ensureReadyForCheckout(now: Date): void {
+    this.assertModifiable(now);
+  }
+
   addLine({ lineId, item, optionChoiceIds, quantity }: AddLine, now: Date): void {
     this.assertModifiable(now);
     const line = CartLine.start(lineId, item, optionChoiceIds, quantity);
