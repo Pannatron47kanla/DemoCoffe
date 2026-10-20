@@ -1,5 +1,5 @@
 import express, { type Express } from 'express';
-import { JsonMenuRepository } from './modules/menu';
+import { JsonMenuRepository, menuRoutes } from './modules/menu';
 import { createOrderingModule, PgUnitOfWork, type MenuLookup } from './modules/ordering';
 import { createVoiceModule, JsonVoiceConsentTexts, PgVoiceSessionRepository, type VoiceGateway } from './modules/voice';
 import type { Clock } from './shared/clock';
@@ -28,6 +28,7 @@ export async function createApp({ pool, menuPath, clock, ids, voice }: { pool: P
 
   const app = express();
   app.use(express.json());
+  app.use(menuRoutes(menuRepository));
   app.use(ordering.router);
   app.use(voiceModule.router);
   app.use(errorHandler);

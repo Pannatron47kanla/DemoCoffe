@@ -1,13 +1,8 @@
 import type { CartView } from '../../application/cart-view';
 import type { Order } from '../../domain/order';
+import { money } from '../../../../shared/money-json';
 
 // domain → JSON ตาม openapi.yaml (เงินเป็นบาท ทศนิยม 2 ตำแหน่ง)
-export function money(satang: number) {
-  const sign = satang < 0 ? '-' : '';
-  const abs = Math.abs(satang);
-  return { amount: `${sign}${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, '0')}`, currency: 'THB' as const };
-}
-
 export function toCartJson({ cart, items }: CartView) {
   return {
     id: cart.id,
