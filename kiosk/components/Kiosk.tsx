@@ -73,8 +73,22 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
     if (!cart || !keyRef.current) return;
     setBusy(true);
     await run(async () => {
-      setOrder(await api.checkout(cart.id, keyRef.current as string));
-      setScreen('queue');
+      try {
+        setOrder(await api.checkout(cart.id, keyRef.current as string));
+        setScreen('queue');
+      } catch (e) {
+        if (!(e instanceof ApiError)) throw e;
+        const { code, details } = e.body;
+        if (code === 'PRICE_CHANGED' && details?.cart) {
+          setCart(details.cart as Cart);
+        } else if (code === 'MENU_ITEM_UNAVAILABLE' && Array.isArray(details?.lineIds)) {
+          setProblemLineIds(details.lineIds as string[]);
+        } else {
+          throw e;
+        }
+        setScreen('order');
+        throw e; // ให้ run() แสดง message จาก API
+      }
     });
     setBusy(false);
   }

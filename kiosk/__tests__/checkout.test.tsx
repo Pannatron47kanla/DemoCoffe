@@ -2,8 +2,9 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
+import { ApiError } from '../lib/api';
 import { Kiosk } from '../components/Kiosk';
-import type { Order } from '../lib/types';
+import type { Cart, Order } from '../lib/types';
 import { fakeApi } from './support/fake-api';
 import { fakeVoiceLink } from './support/fake-voice-link';
 
@@ -46,5 +47,57 @@ describe('ยืนยันออเดอร์', () => {
     expect(api.calls.checkout.length).toBeGreaterThan(0);
     for (const call of api.calls.checkout) expect(call).toEqual(['cart-1', 'k-1']);
     expect(document.querySelector('svg title')?.textContent).toBe(statusPageUrl);
+  });
+
+  const repriced: Cart = {
+    id: 'cart-1', status: 'OPEN', expiresAt: '2026-10-19T02:46:00Z', totalCups: 1,
+    total: { amount: '99.00', currency: 'THB' },
+    lines: [{
+      id: 'line-1', menuItemId: 'espresso', name: 'เอสเพรสโซ่', options: [], quantity: 1,
+      unitPrice: { amount: '99.00', currency: 'THB' }, lineTotal: { amount: '99.00', currency: 'THB' },
+    }],
+  };
+
+  it('AC24: checkout ได้ PRICE_CHANGED กลับหน้าสั่ง แสดงข้อความ และแสดงตะกร้าใหม่จาก details', async () => {
+    const { user } = setup({
+      checkout: async () => {
+        throw new ApiError(409, { code: 'PRICE_CHANGED', message: 'ราคามีการเปลี่ยนแปลง กรุณาตรวจยอดใหม่', details: { cart: repriced } });
+      },
+    });
+    await toConfirm(user);
+    await user.click(await screen.findByRole('button', { name: 'ยืนยันสั่ง' }));
+
+    expect(await screen.findByText('ราคามีการเปลี่ยนแปลง กรุณาตรวจยอดใหม่')).toBeTruthy();
+    expect(screen.getByLabelText('ตะกร้า')).toBeTruthy();
+    expect(within(screen.getByLabelText('ตะกร้า')).getAllByText('99.00').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'ยืนยันสั่ง' })).toBeNull();
+  });
+
+  it('AC24: MENU_ITEM_UNAVAILABLE ไฮไลต์รายการตาม details.lineIds', async () => {
+    const { user } = setup({
+      checkout: async () => {
+        throw new ApiError(409, { code: 'MENU_ITEM_UNAVAILABLE', message: 'บางเมนูหมดแล้ว', details: { lineIds: ['line-1'] } });
+      },
+    });
+    await toConfirm(user);
+    await user.click(await screen.findByRole('button', { name: 'ยืนยันสั่ง' }));
+
+    expect(await screen.findByText('บางเมนูหมดแล้ว')).toBeTruthy();
+    const row = within(screen.getByLabelText('ตะกร้า')).getByText('เอสเพรสโซ่').closest('li');
+    expect(row?.getAttribute('data-problem')).toBe('true');
+  });
+
+  it('AC24: กดยืนยันใหม่หลัง checkout ล้ม ใช้ key ใหม่เพราะเข้าหน้ายืนยันใหม่', async () => {
+    const { api, user } = setup({
+      checkout: async () => {
+        throw new ApiError(409, { code: 'MENU_ITEM_UNAVAILABLE', message: 'บางเมนูหมดแล้ว', details: { lineIds: ['line-1'] } });
+      },
+    });
+    await toConfirm(user);
+    await user.click(await screen.findByRole('button', { name: 'ยืนยันสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: 'ยืนยัน' }));
+    await user.click(await screen.findByRole('button', { name: 'ยืนยันสั่ง' }));
+
+    expect(api.calls.checkout.map((c) => c[1])).toEqual(['k-1', 'k-2']);
   });
 });
