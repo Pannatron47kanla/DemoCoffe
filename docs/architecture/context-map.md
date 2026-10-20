@@ -45,8 +45,8 @@ context ของเฟสถัดไป (payment, face-identity, membership, t
 | ผู้ใช้ | ต้องการ | ผ่าน |
 |---|---|---|
 | ordering | ราคา ตัวเลือก และสถานะพร้อมขายของเมนู | `MenuLookup` (port ใน `ordering/application/ports.ts`) ← `JsonMenuRepository` จาก `menu/index.ts` ต่อสายใน `src/app.ts` |
-| voice | ตะกร้ายังเปิดและไม่หมดอายุไหม (UC-02 R5) | `CartAvailability` (port ใน `voice/application/ports.ts`) ← `ordering/index.ts` |
-| voice | ออกโทเคนชั่วคราวของ Gemini Live | `VoiceGateway` (port) ← adapter ใน `voice/infrastructure` เลือกด้วย `VOICE_PROVIDER`: `ai-studio` (เดโม) / `vertex` (ลูกค้าจริง) |
+| voice | ตะกร้ายังเปิดและไม่หมดอายุไหม (UC-02 R5) | `CartAvailability` (port ใน `voice/application/ports.ts`) ← `CheckCartAvailability` ของ ordering ผ่าน `ordering/index.ts` (`createOrderingModule().cartAvailability`) |
+| voice | ออกโทเคนชั่วคราวของ Gemini Live | `VoiceGateway` (port) ← `AiStudioVoiceGateway` ใน `voice/infrastructure` (ถ้าไม่มี key ใช้ `unavailableVoiceGateway`) เลือกด้วย `VOICE_PROVIDER`: `ai-studio` (เดโม) / `vertex` (ลูกค้าจริง) |
 | UI ตู้ | สั่งผ่านเสียง | Gemini ส่ง function call ให้ UI ตู้ แล้ว UI เรียก API ตะกร้าของ ordering ชุดเดียวกับการแตะจอ (UC-03) |
 
 ## กฎตัวเลขทางธุรกิจ
@@ -57,3 +57,6 @@ context ของเฟสถัดไป (payment, face-identity, membership, t
 | จำนวนรวมต่อออเดอร์ | ไม่เกิน 20 แก้ว | `Cart.MAX_CUPS` |
 | ตะกร้าหมดอายุเมื่อไม่มีการแก้ไข | 15 นาที | `Cart.IDLE_TIMEOUT_MINUTES` |
 | หมายเลขคิว | เริ่มที่ 1 ทุกวันทำการ (Asia/Bangkok) | `QueueNumber`, `BusinessDay` |
+| เริ่มเสียงหลังออกข้อมูลเชื่อมต่อ | ภายใน 60 วินาที | `VOICE_CONNECTION.START_WITHIN_SECONDS` |
+| อายุโทเคน Gemini Live | 15 นาที | `VOICE_CONNECTION.TOKEN_LIFETIME_MINUTES` |
+| เวลารอ Google ออกโทเคน | 3000 มิลลิวินาที (เกินแล้วกลับไปสั่งด้วยการแตะ) | `VOICE_CONNECTION.ISSUE_TIMEOUT_MS` |
