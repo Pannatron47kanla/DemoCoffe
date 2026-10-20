@@ -6,6 +6,7 @@ import type { Cart, MenuItem, Order } from '../lib/types';
 import { EXPIRED_NOTICE_MS, IDLE_PROMPT_MS, QUEUE_RETURN_MS } from '../lib/timing';
 import type { VoiceLink } from '../lib/voice-link';
 import { useIdle } from '../lib/use-idle';
+import { ConsentSheet } from './ConsentSheet';
 import { ConfirmScreen } from './ConfirmScreen';
 import { IdlePrompt } from './IdlePrompt';
 import { ItemOptionsDialog, type AddInput } from './ItemOptionsDialog';
@@ -29,6 +30,7 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
   const [expired, setExpired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [idlePrompt, setIdlePrompt] = useState(false);
+  const [consent, setConsent] = useState<{ version: string; text: string } | null>(null);
 
   // แสดง message จาก API ตามที่ได้รับ; error อื่น (เช่น เครือข่าย) แสดงข้อความกลาง
   async function run(action: () => Promise<void>) {
@@ -50,6 +52,7 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
     setCart(null);
     setOrder(null);
     setSelected(null);
+    setConsent(null);
     setProblemLineIds([]);
     setScreen('welcome');
   }
@@ -105,6 +108,11 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
       if (cart) setCart(await api.removeLine(cart.id, lineId));
     });
 
+  const openConsent = () =>
+    run(async () => {
+      setConsent(await api.getConsentText());
+    });
+
   function goConfirm() {
     keyRef.current = newIdempotencyKey();
     setScreen('confirm');
@@ -144,9 +152,10 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
       ) : screen === 'confirm' ? (
         <ConfirmScreen cart={cart} busy={busy} onPlace={place} onBack={() => setScreen('order')} />
       ) : (
-        <OrderScreen menu={menu} cart={cart} onSelect={setSelected} onChangeQuantity={changeQuantity} onRemove={remove} onConfirm={goConfirm} problemLineIds={problemLineIds} />
+        <OrderScreen menu={menu} cart={cart} onSelect={setSelected} onChangeQuantity={changeQuantity} onRemove={remove} onConfirm={goConfirm} problemLineIds={problemLineIds} voiceOn={false} onVoice={openConsent} />
       )}
       {idlePrompt ? <IdlePrompt onStay={() => setIdlePrompt(false)} onTimeout={resetToWelcome} /> : null}
+      {consent ? <ConsentSheet text={consent.text} onAccept={() => setConsent(null)} onDecline={() => setConsent(null)} /> : null}
       {selected ? <ItemOptionsDialog item={selected} onAdd={add} onClose={() => setSelected(null)} /> : null}
     </main>
   );
