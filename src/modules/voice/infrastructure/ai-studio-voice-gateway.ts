@@ -32,6 +32,9 @@ export class AiStudioVoiceGateway implements VoiceGateway {
             systemInstruction: setup.systemInstruction,
             tools: [{ functionDeclarations: VOICE_FUNCTION_DECLARATIONS }],
             speechConfig: { languageCode: 'th-TH' },
+            // คำบรรยายขาเข้าและขาออกเปิดเสมอ (UC-04 R6: ไม่ส่งไป API และไม่เก็บ)
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
           },
         },
         httpOptions: { apiVersion: 'v1alpha' },

@@ -18,6 +18,8 @@ interface SentConfig {
       systemInstruction: string;
       tools: Array<{ functionDeclarations: Array<{ name: string; parameters: { required?: string[]; properties: Record<string, { type: string }> } }> }>;
       speechConfig: { languageCode: string };
+      inputAudioTranscription: object;
+      outputAudioTranscription: object;
     };
   };
 }
@@ -63,6 +65,18 @@ describe('AiStudioVoiceGateway', () => {
     expect(config.tools).toHaveLength(1);
     expect(config.tools[0]!.functionDeclarations.map((d) => d.name)).toEqual([...VOICE_FUNCTION_NAMES]);
     expect(config.speechConfig.languageCode).toBe('th-TH');
+  });
+
+  it('AC6: ล็อกคำบรรยายขาเข้าและขาออก ส่วนอื่นไม่เปลี่ยน', async () => {
+    const { tokens, calls } = recordingTokens();
+    await new AiStudioVoiceGateway({ tokens, model: 'gemini-3.8-live' }).issueConnection(NOW, SETUP);
+
+    const { config } = calls[0]!.config.liveConnectConstraints;
+    expect(config.inputAudioTranscription).toEqual({});
+    expect(config.outputAudioTranscription).toEqual({});
+    expect(config.responseModalities).toEqual([Modality.AUDIO]);
+    expect(config.sessionResumption).toEqual({});
+    expect(config.speechConfig).toEqual({ languageCode: 'th-TH' });
   });
 
   it('AC1: schema ของ add_to_cart บังคับ menuItemId และ quantity', async () => {
