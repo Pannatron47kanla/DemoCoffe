@@ -1,12 +1,18 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Kiosk } from '../components/Kiosk';
 import { fakeApi } from './support/fake-api';
 import { fakeVoiceLink } from './support/fake-voice-link';
 
+// RTL ตรวจ fake timers ผ่านตัวแปร global `jest` เท่านั้น; ให้ shim เพื่อให้ findBy*/user-event เดินเวลาปลอมเอง (ไม่พึ่งเวลาจริง)
+beforeEach(() => {
+  (globalThis as { jest?: unknown }).jest = { advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms) };
+});
+
 afterEach(() => {
+  delete (globalThis as { jest?: unknown }).jest;
   cleanup();
   vi.useRealTimers();
 });
@@ -15,7 +21,7 @@ const advance = (ms: number) => act(async () => { await vi.advanceTimersByTimeAs
 
 // คืนตะกร้าที่มีของแล้ว ณ หน้าสั่ง; จบด้วย pointerdown เพื่อให้นับเวลา idle จากจุดนี้พอดี
 async function orderingWithCart() {
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.useFakeTimers();
   render(<Kiosk api={fakeApi()} voice={fakeVoiceLink().link} />);
   const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
   await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));

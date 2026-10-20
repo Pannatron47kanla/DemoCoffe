@@ -69,7 +69,12 @@ export function Kiosk({ api, newIdempotencyKey = () => crypto.randomUUID() }: { 
   }, [screen]);
 
   // ไม่แตะนาน: ถามว่ายังสั่งอยู่ไหม (หน้าสั่งและหน้ายืนยัน) enabled จะถูกปิดเมื่อเปิดเสียงในงานถัดไป
-  const idleEnabled = (screen === 'order' || screen === 'confirm') && !idlePrompt;
+  const idleScreen = screen === 'order' || screen === 'confirm';
+  const idleEnabled = idleScreen && !idlePrompt;
+  // ออกจากหน้าสั่ง/ยืนยัน (เช่นยืนยันสั่งสำเร็จ) ต้องล้างคำถามที่ค้าง ไม่ให้ไปตัดหน้าคิว
+  useEffect(() => {
+    if (!idleScreen) setIdlePrompt(false);
+  }, [idleScreen]);
   useIdle(() => setIdlePrompt(true), IDLE_PROMPT_MS, idleEnabled);
 
   async function start() {
