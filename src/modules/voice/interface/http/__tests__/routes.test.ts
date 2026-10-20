@@ -317,4 +317,18 @@ describe('voice HTTP routes', () => {
     expect(uow.orders.size).toBe(0);
     expectMatchesSpec('post', '/voice/sessions/{sessionId}/function-calls', res);
   });
+
+  const FN_CALLS = '/voice/sessions/{sessionId}/function-calls';
+
+  it('AC9: add_to_cart อเมริกาโน่ไม่เลือกขนาด → 409 OPTION_REQUIRED groupId size', async () => {
+    const { call, both, cart } = await composeWithConsent();
+
+    const res = await call({ name: 'add_to_cart', args: { menuItemId: 'americano', optionChoiceIds: [], quantity: 1 } });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('OPTION_REQUIRED');
+    expect(res.body.details.groupId).toBe('size');
+    expectMatchesSpec('post', FN_CALLS, res);
+    expect((await request(both).get(`/carts/${cart.id}`)).body.lines).toEqual([]);
+  });
 });
