@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { VoiceSession } from '../lib/types';
 import { Kiosk } from '../components/Kiosk';
 import { fakeApi } from './support/fake-api';
 import { fakeVoiceLink } from './support/fake-voice-link';
@@ -39,5 +40,38 @@ describe('UC-04 voice consent', () => {
     expect(fake.connections).toBe(0);
     await user.click(screen.getByRole('button', { name: /^เอสเพรสโซ่/ }));
     expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+});
+
+const session: VoiceSession = {
+  id: 'vs-1',
+  cartId: 'cart-1',
+  consentTextVersion: 'voice-demo-v1',
+  consentedAt: '2026-10-20T02:00:00Z',
+  connection: { token: 'tok-1', model: 'gemini-live', startBefore: '2026-10-20T02:01:00Z' },
+};
+const voiceApi = () =>
+  fakeApi({
+    getConsentText: async () => ({ version: 'voice-demo-v1', text: 'ข้อความยินยอม' }),
+    startVoiceSession: async () => session,
+  });
+
+describe('UC-04 voice session', () => {
+  it('AC15: แตะยินยอมส่ง cartId และเวอร์ชันที่แสดง แล้ว connect ด้วยโทเคน ปุ่มเป็นหยุดเสียง', async () => {
+    const connect = vi.fn();
+    const fake = fakeVoiceLink();
+    const link = { connect: (...a: Parameters<typeof fake.link.connect>) => (connect(...a), fake.link.connect(...a)) };
+    const api = voiceApi();
+    render(<Kiosk api={api} voice={link} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+    await user.click(await screen.findByRole('button', { name: 'ยินยอม' }));
+
+    expect(await screen.findByRole('button', { name: '⏹ หยุดเสียง' })).toBeTruthy();
+    expect(api.calls.startVoiceSession[0]).toEqual(['cart-1', 'voice-demo-v1']);
+    expect(fake.connections).toBe(1);
+    expect(connect.mock.calls[0]?.[0]).toEqual(session.connection);
+    expect(screen.queryByRole('button', { name: 'ยินยอม' })).toBeNull();
   });
 });
