@@ -307,7 +307,7 @@ describe('UC-04 voice fixes', () => {
     const { user, fake } = await voiceOrdering(api);
     await user.click(screen.getByRole('button', { name: '⏹ หยุดเสียง' }));
     await user.click(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
-    await user.click(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+    await user.click(screen.getByRole('button', { name: 'กำลังเชื่อมต่อ…' }));
     await act(async () => { release(); });
 
     expect(await screen.findByRole('button', { name: '⏹ หยุดเสียง' })).toBeTruthy();
@@ -334,5 +334,27 @@ describe('UC-04 voice fixes', () => {
 
     expect(screen.queryByRole('button', { name: 'ยืนยันสั่ง' })).toBeNull();
     expect(screen.getByText('หมายเลขคิวของคุณ')).toBeTruthy();
+  });
+});
+
+describe('UC-04 voice review fixes', () => {
+  it('AC15: ระหว่างกำลังเชื่อมต่อปุ่มเสียงแสดงกำลังเชื่อมต่อและไม่เปิดแผ่นยินยอมซ้ำ', async () => {
+    let release: (s: VoiceSession) => void = () => {};
+    const api = voiceApi({ startVoiceSession: () => new Promise<VoiceSession>((res) => { release = res; }) });
+    const fake = fakeVoiceLink();
+    render(<Kiosk api={api} voice={fake.link} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'เริ่มสั่ง' }));
+    await user.click(await screen.findByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+    await user.click(await screen.findByRole('button', { name: 'ยินยอม' }));
+
+    const connecting = await screen.findByRole('button', { name: 'กำลังเชื่อมต่อ…' });
+    expect((connecting as HTMLButtonElement).disabled).toBe(true);
+    await user.click(connecting);
+    expect(screen.queryByRole('button', { name: 'ยินยอม' })).toBeNull();
+    expect(api.calls.getConsentText).toHaveLength(1);
+
+    await act(async () => { release(session); });
+    expect(await screen.findByRole('button', { name: '⏹ หยุดเสียง' })).toBeTruthy();
   });
 });

@@ -43,6 +43,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
   const [error, setError] = useState<string | null>(null);
   const [idlePrompt, setIdlePrompt] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
+  const [voiceConnecting, setVoiceConnecting] = useState(false);
   const voiceRef = useRef<VoiceLinkSession | null>(null);
   const startTokenRef = useRef(0); // เพิ่มทุกครั้งที่หยุด/กลับต้อนรับ เพื่อทิ้งการเปิดเสียงที่ค้างอยู่
   const startingRef = useRef<number | null>(null);
@@ -155,6 +156,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
     if (startingRef.current !== null) return; // กำลังเปิดเสียงอยู่ ไม่เปิดซ้อน
     const token = ++startTokenRef.current;
     startingRef.current = token;
+    setVoiceConnecting(true);
     await run(async () => {
       try {
         await openVoice(cartId, version, token);
@@ -165,7 +167,10 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
         setError(VOICE_UNAVAILABLE);
       }
     });
-    if (startingRef.current === token) startingRef.current = null;
+    if (startingRef.current === token) {
+      startingRef.current = null;
+      setVoiceConnecting(false);
+    }
   }
 
   async function openVoice(cartId: string, version: string, token: number) {
@@ -222,6 +227,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
   function stopVoice() {
     startTokenRef.current += 1;
     startingRef.current = null;
+    setVoiceConnecting(false);
     voiceRef.current?.close();
     voiceRef.current = null;
     setVoiceOn(false);
@@ -268,7 +274,7 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
       ) : screen === 'confirm' ? (
         <ConfirmScreen cart={cart} busy={busy} onPlace={place} onBack={() => setScreen('order')} />
       ) : (
-        <OrderScreen menu={menu} cart={cart} onSelect={setSelected} onChangeQuantity={changeQuantity} onRemove={remove} onConfirm={goConfirm} problemLineIds={problemLineIds} voiceOn={voiceOn} onVoice={toggleVoice} />
+        <OrderScreen menu={menu} cart={cart} onSelect={setSelected} onChangeQuantity={changeQuantity} onRemove={remove} onConfirm={goConfirm} problemLineIds={problemLineIds} voiceOn={voiceOn} voiceConnecting={voiceConnecting} onVoice={toggleVoice} />
       )}
       {screen === 'order' || screen === 'confirm' ? <CaptionBox captions={captions} /> : null}
       {idlePrompt ? <IdlePrompt onStay={() => setIdlePrompt(false)} onTimeout={resetToWelcome} /> : null}
