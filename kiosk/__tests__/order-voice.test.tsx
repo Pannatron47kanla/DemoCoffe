@@ -296,3 +296,22 @@ describe('UC-04 voice stop and reopen', () => {
     expect(screen.queryByText(NOTICE)).toBeNull();
   });
 });
+
+describe('UC-04 voice fixes', () => {
+  it('AC15: แตะสั่งด้วยเสียงซ้ำระหว่างกำลังเชื่อมต่อเปิดแค่ครั้งเดียว', async () => {
+    let n = 0;
+    let release: () => void = () => {};
+    const api = voiceApi({
+      startVoiceSession: () => (n++ === 0 ? Promise.resolve(session) : new Promise((res) => { release = () => res(session); })),
+    });
+    const { user, fake } = await voiceOrdering(api);
+    await user.click(screen.getByRole('button', { name: '⏹ หยุดเสียง' }));
+    await user.click(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+    await user.click(screen.getByRole('button', { name: '🎤 สั่งด้วยเสียง' }));
+    await act(async () => { release(); });
+
+    expect(await screen.findByRole('button', { name: '⏹ หยุดเสียง' })).toBeTruthy();
+    expect(api.calls.startVoiceSession).toHaveLength(2);
+    expect(fake.connections).toBe(2);
+  });
+});

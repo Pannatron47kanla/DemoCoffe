@@ -44,6 +44,8 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
   const [idlePrompt, setIdlePrompt] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
   const voiceRef = useRef<VoiceLinkSession | null>(null);
+  const startTokenRef = useRef(0); // เพิ่มทุกครั้งที่หยุด/กลับต้อนรับ เพื่อทิ้งการเปิดเสียงที่ค้างอยู่
+  const startingRef = useRef<number | null>(null);
   const consentedRef = useRef<{ cartId: string; version: string } | null>(null); // ตะกร้านี้ยินยอมแล้ว ไม่ถามซ้ำ
   const [captions, setCaptions] = useState<Caption[]>([]);
   const screenRef = useRef<Screen>('welcome');
@@ -149,19 +151,26 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
     return openConsent();
   }
 
-  const startVoice = (cartId: string, version: string) =>
-    run(async () => {
+  async function startVoice(cartId: string, version: string) {
+    if (startingRef.current !== null) return; // กำลังเปิดเสียงอยู่ ไม่เปิดซ้อน
+    const token = ++startTokenRef.current;
+    startingRef.current = token;
+    await run(async () => {
       try {
-        await openVoice(cartId, version);
+        await openVoice(cartId, version, token);
       } catch (e) {
+        if (startTokenRef.current !== token) return;
         // ตะกร้าหมดอายุใช้กฎเดียวกับทุกที่; อย่างอื่นคือเปิดเสียงไม่ได้ ให้แตะสั่งต่อ
         if (e instanceof ApiError && e.body.code === 'CART_EXPIRED') throw e;
         setError(VOICE_UNAVAILABLE);
       }
     });
+    if (startingRef.current === token) startingRef.current = null;
+  }
 
-  async function openVoice(cartId: string, version: string) {
+  async function openVoice(cartId: string, version: string, token: number) {
     const session = await api.startVoiceSession(cartId, version);
+    if (startTokenRef.current !== token) return;
     consentedRef.current = { cartId, version };
     // batch ที่ซ้อนกันต่อคิวทีละชุด เพื่อให้ response ถึง Gemini ตามลำดับ
     let chain: Promise<void> = Promise.resolve();
@@ -180,6 +189,10 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
         else stopVoice();
       },
     });
+    if (startTokenRef.current !== token) {
+      link.close(); // ระหว่างรอ มีการหยุด/กลับหน้าต้อนรับไปแล้ว
+      return;
+    }
     slot.link = link;
     voiceRef.current = link;
     setVoiceOn(true);
@@ -207,6 +220,8 @@ export function Kiosk({ api, voice, newIdempotencyKey = () => crypto.randomUUID(
   }
 
   function stopVoice() {
+    startTokenRef.current += 1;
+    startingRef.current = null;
     voiceRef.current?.close();
     voiceRef.current = null;
     setVoiceOn(false);
