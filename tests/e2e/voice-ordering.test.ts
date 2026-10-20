@@ -60,13 +60,13 @@ describe('UC-03 สั่งด้วยเสียง (e2e)', () => {
     expectMatchesSpec('post', path, added);
     const lineId = added.body.cart.lines[0].id;
 
-    const changed = await call('change_quantity', { lineId, quantity: 3 });
+    const changed = await call('change_quantity', { lineId, quantity: 4 });
     expect(changed.status).toBe(200);
     expectMatchesSpec('post', path, changed);
 
     const viewed = await call('view_cart', {});
     expect(viewed.status).toBe(200);
-    expect(viewed.body.cart.lines[0].quantity).toBe(3);
+    expect(viewed.body.cart.lines[0].quantity).toBe(4);
     expectMatchesSpec('post', path, viewed);
 
     const requested = await call('request_checkout', {});

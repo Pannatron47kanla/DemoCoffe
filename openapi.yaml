@@ -482,7 +482,7 @@ components:
             view_cart, request_checkout → ไม่มี
             ผิดรูปแบบตอบ 400 VALIDATION_ERROR (AC16) ช่วงของจำนวนเป็นกฎ UC-01 ตอบ 409
           properties:
-            menuItemId: { type: string, example: latte }
+            menuItemId: { type: string, minLength: 1, example: latte }
             optionChoiceIds:
               type: array
               items: { type: string }

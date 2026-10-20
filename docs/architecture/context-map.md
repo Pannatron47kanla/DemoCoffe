@@ -40,7 +40,7 @@ context ของเฟสถัดไป (payment, face-identity, membership, t
 | voice | ข้อมูลเชื่อมต่อเสียง | ข้อมูลชั่วคราวให้ตู้เปิดเซสชัน Gemini Live ใช้เริ่มได้ภายในเวลาจำกัด | `VoiceConnection` |
 | voice | ข้อความยินยอมเรื่องเสียง | ข้อความที่แสดงก่อนเริ่มพูด มีเวอร์ชัน | `VoiceConsentText` |
 | voice | การเรียกฟังก์ชันเสียง | function call หนึ่งครั้งจาก Gemini (ชื่อ + args) ที่เซิร์ฟเวอร์ทำกับตะกร้าของเซสชัน | `VoiceFunctionCall` |
-| voice | คำสั่งระบบของ Gemini | ข้อความที่ล็อกในโทเคน มีเมนูปัจจุบันและข้อปฏิบัติ (UC-03 R4, R5) | `VoiceInstructions` |
+| voice | คำสั่งระบบของ Gemini | ข้อความที่ล็อกในโทเคน มีเมนูปัจจุบันและข้อปฏิบัติ (UC-03 R4, R5) | `buildVoiceInstructions` |
 
 ## การคุยข้าม context
 
