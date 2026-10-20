@@ -3,7 +3,7 @@ import { VoiceConsentText } from '../../domain/voice-consent-text';
 import { VoiceSession } from '../../domain/voice-session';
 import { CallVoiceFunction } from '../call-voice-function';
 import { VOICE_FUNCTION_NAMES, type VoiceFunctionCall } from '../../domain/voice-function-call';
-import { FakeCartAvailability, FakeVoiceCartOperations, InMemoryVoiceSessions } from './fakes';
+import { FakeCartAvailability, FakeVoiceCartOperations, FakeVoiceGateway, InMemoryVoiceSessions } from './fakes';
 
 const SESSION_ID = '00000000-0000-4000-8000-000000000001';
 const CART_ID = '7d0f1a52-4b8e-4c1e-9a77-2f1d3c4b5a60';
@@ -12,17 +12,19 @@ describe('CallVoiceFunction', () => {
   let sessions: InMemoryVoiceSessions;
   let cartOperations: FakeVoiceCartOperations;
   let carts: FakeCartAvailability;
+  let gateway: FakeVoiceGateway;
   let useCase: CallVoiceFunction;
 
   beforeEach(async () => {
     sessions = new InMemoryVoiceSessions();
     cartOperations = new FakeVoiceCartOperations();
     carts = new FakeCartAvailability();
+    gateway = new FakeVoiceGateway();
     await sessions.add(VoiceSession.consent({
       id: SESSION_ID, cartId: CART_ID, kioskId: 'kiosk-1', shownVersion: 'voice-demo-v1',
       current: VoiceConsentText.of('voice-demo-v1', 'ข้อความทดสอบ'), now: new Date('2026-10-20T02:30:00Z'),
     }));
-    useCase = new CallVoiceFunction({ sessions, cartOperations, carts });
+    useCase = new CallVoiceFunction({ sessions, cartOperations, carts, gateway });
   });
 
   it("AC3: add_to_cart เรียก cartOperations.add ด้วย cartId ของเซสชัน", async () => {
@@ -89,4 +91,14 @@ describe('CallVoiceFunction', () => {
       expect(cartOperations.calls).toEqual([]);
     },
   );
+
+  // AC10/AC17: ปิดเสียงต้องหยุดก่อนแตะเซสชันหรือตะกร้า
+  it('AC17: ปิดเสียง → VOICE_UNAVAILABLE ไม่เรียก cartOperations', async () => {
+    gateway.available = false;
+
+    await expect(useCase.execute({ sessionId: SESSION_ID, call: { name: 'view_cart' } })).rejects.toMatchObject({ code: 'VOICE_UNAVAILABLE' });
+    await expect(useCase.execute({ sessionId: 'missing', call: { name: 'view_cart' } })).rejects.toMatchObject({ code: 'VOICE_UNAVAILABLE' });
+
+    expect(cartOperations.calls).toEqual([]);
+  });
 });

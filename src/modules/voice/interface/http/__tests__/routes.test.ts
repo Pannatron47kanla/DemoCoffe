@@ -535,4 +535,16 @@ describe('voice HTTP routes', () => {
       expectMatchesSpec('post', FN_CALLS, res);
     });
   });
+
+  it('AC17: ปิดเสียง function-calls → 503 VOICE_UNAVAILABLE ตะกร้าไม่เปลี่ยน', async () => {
+    const { both, cart, call } = await composeWithConsent();
+    gateway.available = false;
+
+    const res = await call({ name: 'add_to_cart', args: { menuItemId: 'latte', optionChoiceIds: ['size-l'], quantity: 1 } });
+
+    expect(res.status).toBe(503);
+    expect(res.body.code).toBe('VOICE_UNAVAILABLE');
+    expectMatchesSpec('post', FN_CALLS, res);
+    expect((await request(both).get(`/carts/${cart.id}`)).body.lines).toEqual([]);
+  });
 });
