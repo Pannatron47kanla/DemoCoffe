@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+# Biometric data never lives in the repo; these patterns are a second line of defence.
+*.onnx
+*.npy
+*.npz
+*.jpg
+*.jpeg
+*.png
+*.mp4
+*.avi
