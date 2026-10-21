@@ -19,7 +19,7 @@
 ## ลำดับความสำคัญเมื่อ skill ซ้อนกัน
 ไฟล์นี้ > skill ของทีม (`feature-workflow`, `ddd-architecture`, `jira-backlog`) > Superpowers > skill อื่น (Caveman, code-review-graph) ถ้าขัดกันให้ทำตามตัวที่อยู่ซ้ายกว่า
 
-งานแต่ละแบบให้ใช้ skill ตามตารางนี้เท่านั้น ห้ามใช้ skill ในคอลัมน์ "ห้ามใช้" แม้ description จะดูตรง เพราะจะได้สองกระบวนการซ้อนกัน
+ทุกครั้งที่เริ่มใช้ skill ให้ประกาศเป็นข้อความว่า `Using <ชื่อ skill>` งานแต่ละแบบให้ใช้ skill ตามตารางนี้เท่านั้น ห้ามใช้ skill ในคอลัมน์ "ห้ามใช้" แม้ description จะดูตรง เพราะจะได้สองกระบวนการซ้อนกัน
 
 | งาน | ใช้ | ห้ามใช้ |
 |---|---|---|
@@ -39,11 +39,11 @@ Superpowers ทำหน้าที่ "วินัย" ส่วน skill ข
 | Superpowers skill | ใช้ในทีมแบบนี้ |
 |---|---|
 | `brainstorming` | ใช้ถามคำถามและหาเคสในขั้นที่ 1 ของ `feature-workflow` แต่**ผลลัพธ์เขียนลง `docs/usecases/UC-xx-<name>.md`** (ตาราง AC แบบ Given/When/Then) ไม่ใช่ `docs/superpowers/specs/` ห้ามข้ามไปขั้นที่ 2 ก่อนผู้ใช้รีวิว AC **เมื่อ brainstorming จบ ให้กลับไปทำ `feature-workflow` ขั้นที่ 2 (DB + API spec) และ 3 (mock + seed) ก่อน ห้ามกระโดดไป `writing-plans` ทันทีตามที่ brainstorming บอก** |
-| `writing-plans` | ใช้ในขั้นที่ 4 แผนบันทึกที่ `docs/plans/<ISSUE-KEY>-<ชื่อสั้น>.md` แบ่ง task **ต่อ AC** เรียงตามชั้น DDD (domain → application → infrastructure → interface/http) ทุก task ระบุรหัส AC และ commit message เป็น `<KEY> AC<n>: ...` ไม่ใช้ `feat: ...` |
+| `writing-plans` | ใช้ในขั้นที่ 4 แผนบันทึกที่ `docs/plans/<KEY>-<ชื่อสั้น>.md` แบ่ง task **ต่อ AC** เรียงตามชั้น DDD (domain → application → infrastructure → interface/http) ทุก task ระบุรหัส AC และ commit message เป็น `<KEY> AC<n>: ...` ไม่ใช้ `feat: ...` |
 | `test-driven-development` | ใช้ในขั้นที่ 5 ตามปกติ เพิ่มกติกาทีม: ชื่อเทสต์ `AC<n>: ...`, repository เทสต์กับ DB จริง, service ใช้ fake repository + `fixedClock` |
-| `using-git-worktrees` | ใช้ worktree แบบ native ของ Claude Code (อยู่ใน `.claude/worktrees/`) ไม่ใช้ `git worktree add` เอง ชื่อ branch ต้องเป็น `feature/<KEY>-<ชื่อสั้น>` (หรือ `fix/` `chore/` `spike/` `hotfix/`) แตกจาก `origin/main` ล่าสุด |
+| `using-git-worktrees` | **บังคับ** สร้างครั้งเดียวที่ต้นขั้นที่ 1 (worktree พร้อม branch) ขั้นที่ 5 แค่ตรวจว่ายังอยู่ใน worktree นั้น ห้ามสร้างซ้ำ ใช้ worktree แบบ native ของ Claude Code (อยู่ใน `.claude/worktrees/`) ไม่ใช้ `git worktree add` เอง ชื่อ branch ต้องเป็น `feature/<KEY>-<ชื่อสั้น>` (หรือ `fix/` `chore/` `spike/` `hotfix/`) แตกจาก `origin/main` ล่าสุด ถ้าเครื่องมือตั้งชื่อให้ไม่ตรง ให้ `git branch -m` ก่อน commit แรก |
 | `subagent-driven-development` / `executing-plans` | ใช้ได้ subagent ทุกตัวต้องได้รับกติกาจากไฟล์นี้และ skill `ddd-architecture` ไปด้วย รายงานของแต่ละ task ต้องมีผลรันเทสต์ตอน red (ข้อความ fail) เพื่อให้ผู้ใช้ตรวจย้อนหลังได้ว่า fail ด้วยเหตุผลที่ถูก |
-| `requesting-code-review` | reviewer ดู diff เต็มด้วย `rtk bypass git diff origin/main...HEAD` (diff ที่ RTK ย่อตัดบริบทออก) และตรวจ Definition of Done ของ `feature-workflow` กับเช็กลิสต์ของ `ddd-architecture` |
+| `requesting-code-review` | reviewer ดู diff เต็มด้วย `rtk bypass git diff origin/main...HEAD` หรือเขียน diff ลงไฟล์แล้วอ่านด้วย Read (diff ที่ RTK ย่อตัดบริบทออก) และตรวจ Definition of Done ของ `feature-workflow` กับเช็กลิสต์ของ `ddd-architecture` |
 | `verification-before-completion` | ใช้คู่กับ Definition of Done รายงานเป็นตาราง AC → ไฟล์เทสต์ → สถานะ |
 | `systematic-debugging` | ใช้กับ Bug ได้เลย ขั้นแรกต้องเป็นเทสต์ที่ fail ซ้ำบั๊ก (ตาม `jira-backlog`) |
 | `finishing-a-development-branch` | **เลือกได้แค่ "Push และเปิด PR" หรือ "เก็บไว้ก่อน"** ห้าม merge เข้า `main` บนเครื่อง ก่อน push ให้ rebase บน `origin/main` และเทสต์ผ่านทั้งหมด branch `spike/` ห้ามเปิด PR เพื่อ merge |
@@ -79,8 +79,10 @@ Superpowers ทำหน้าที่ "วินัย" ส่วน skill ข
 ## Git และ Jira
 อ่าน `.claude/skills/jira-backlog/SKILL.md` เมื่อร่างหรือแก้ Epic, Story, Sub-task หรือทำ CSV สำหรับ Jira
 - `main` พร้อม deploy เสมอ ห้าม commit หรือ push ตรงเข้า main
-- branch: `feature/` `fix/` `chore/` `spike/` `hotfix/` + `<ISSUE-KEY>-<ชื่อสั้น>` เช่น `feature/LIB-12-borrow-book`
+- branch: `feature/` `fix/` `chore/` `spike/` `hotfix/` + `<KEY>-<ชื่อสั้น>` เช่น `feature/LIB-12-borrow-book`
 - ใช้ key ของ Story ไม่ใช่ Sub-task; commit: `LIB-12 AC3: ...`
+- **ทีมที่ไม่ใช้ Jira:** key คือรหัส use case เช่น branch `feature/UC-12-borrow-book`, commit `UC-12 AC3: ...`, แผน `docs/plans/UC-12-borrow-book.md` ส่วน backlog เป็นข้อความหรือ CSV ใน `docs/backlog/`
+- หนึ่ง Story ใช้ worktree และ branch เดียวตั้งแต่ขั้นที่ 1 ถึง PR (use case, spec และโค้ดอยู่ใน PR เดียวกัน)
 - ก่อนเปิด PR ให้ rebase บน `origin/main` และเทสต์ผ่านทั้งหมด
 - ชื่อไฟล์ migration ใช้ timestamp (`YYYYMMDD_HHMM_<name>.sql`) กันชนกับ branch อื่น
 - branch `spike/` ห้าม merge
@@ -88,8 +90,8 @@ Superpowers ทำหน้าที่ "วินัย" ส่วน skill ข
 ## ประหยัด token
 - โหมดตอบสั้น (Caveman) ใช้ได้กับข้อความในแชตเท่านั้น ไฟล์ที่คนในทีมต้องอ่าน (`docs/usecases/`, แผนใน `docs/plans/`, Story/Sub-task ใน Jira, คำอธิบาย PR, commit message) ต้องเขียนเต็มประโยคตามรูปแบบเดิม
 - ตอนถามคำถามหรือให้ผู้ใช้รีวิว AC ใน `brainstorming` และ `feature-workflow` ให้อธิบายเต็ม ไม่ต้องย่อ
-- ก่อนปิด session ที่งานยังไม่จบ ให้ใช้ `/handoff` สรุปส่งต่อ โดยอ้างถึงไฟล์ use case, แผน และ branch ด้วย path แทนการคัดลอกเนื้อหา
-- RTK ย่อ output ของคำสั่ง ถ้าต้องดูผลเต็ม (เช่นเทสต์ red ที่ต้องยืนยันว่า fail ด้วยเหตุผลที่ถูก หรือ diff สำหรับรีวิว) ให้ใช้ `rtk bypass <คำสั่ง>` เช่น `rtk bypass npm test`
+- ก่อนปิด session ที่งานยังไม่จบ ให้ใช้ `/handoff` สรุปส่งต่อ โดยอ้างถึงไฟล์ use case, แผน, branch และ worktree ด้วย path แทนการคัดลอกเนื้อหา ไฟล์ handoff อยู่ที่ `~/.local/state/claude-handoff/<repo>/` (ไม่ใช่ `/tmp`) เมื่อผู้ใช้บอกว่า "อ่าน handoff ล่าสุด" ให้อ่านไฟล์ใหม่สุดในโฟลเดอร์นั้น
+- RTK ย่อ output ของคำสั่ง ถ้าต้องดูผลเต็ม (เช่นเทสต์ red ที่ต้องยืนยันว่า fail ด้วยเหตุผลที่ถูก หรือ diff สำหรับรีวิว) ให้ใช้ `rtk bypass <คำสั่ง>` เช่น `rtk bypass npm test` ถ้า `rtk bypass` ถูกปฏิเสธสิทธิ์ ให้เขียน output ลงไฟล์แล้วอ่านด้วย Read tool แทน เช่น `npm test > /tmp/test-red.log 2>&1` หรือ `git diff origin/main...HEAD > /tmp/review.diff` ห้ามสรุปผล red จาก output ที่ถูกย่อ
 
 ## ความปลอดภัยของ environment
 - ห้ามรันเทสต์ migration หรือ seed กับ production
