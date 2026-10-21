@@ -18,6 +18,7 @@ description: ใช้เมื่อต้องร่างหรือปร�
 ## ก่อนเริ่ม
 1. อ่าน `docs/architecture/context-map.md` และ `docs/usecases/` ที่มีอยู่
 2. ถามผู้ใช้ถ้าไม่รู้: project key ของ Jira (เช่น `LIB`), Epic ที่จะใส่, ผลลัพธ์ที่ต้องการ (ข้อความ / CSV / สร้างใน Jira)
+   **ถ้าทีมไม่ใช้ Jira:** ไม่ต้องถาม project key ใช้รหัส use case เป็น key (`UC-12`) ทั้งใน branch, commit และแผน และทำผลลัพธ์เป็นข้อความหรือ CSV ใน `docs/backlog/` เท่านั้น
 3. ถ้ากฎธุรกิจไม่ชัด (ตัวเลข สิทธิ์ ข้อยกเว้น) ให้ถาม อย่าเดา แล้วใส่คำถามที่ค้างไว้ในส่วน "คำถามที่ต้องตอบ" ของ Story
 
 ## Story
@@ -96,7 +97,7 @@ description: ใช้เมื่อต้องร่างหรือปร�
 
 ## ต่อกับงานเขียนโค้ด (branch)
 ทีมใช้ `main` สายเดียวที่พร้อม deploy เสมอ แตก branch สั้นๆ ต่อ issue ไม่มี develop/release branch
-- ชื่อ branch: `<ประเภท>/<ISSUE-KEY>-<ชื่อสั้นภาษาอังกฤษ kebab-case>`
+- ชื่อ branch: `<ประเภท>/<KEY>-<ชื่อสั้นภาษาอังกฤษ kebab-case>` (KEY คือ issue key ของ Story หรือรหัส UC ถ้าไม่ใช้ Jira)
   - `feature/` Story · `fix/` Bug · `chore/` Setup/Tech · `spike/` Spike (ไม่ merge) · `hotfix/` production พังด่วน
 - ใช้ key ของ Story ไม่ใช่ของ Sub-task, หนึ่ง Story หนึ่ง branch
 - commit: `<KEY> AC<n>: <สิ่งที่ทำ>` หรือ `<KEY> <สิ่งที่ทำ>` ถ้าไม่เกี่ยวกับ AC

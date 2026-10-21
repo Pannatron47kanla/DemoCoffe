@@ -6,26 +6,34 @@ Superpowers 7.x ไม่มีคำสั่ง `/brainstorm` `/write-plan` `/
 
 ## ภาพรวม: ฟีเจอร์หนึ่งชิ้นผ่านอะไรบ้าง
 
+**KEY** คือ issue key ของ Story ถ้าใช้ Jira (`LIB-12`) หรือรหัส use case ถ้าไม่ใช้ Jira (`UC-12`) หนึ่ง Story ใช้ worktree และ branch เดียวตั้งแต่ขั้นที่ 1 ถึง PR ทุกครั้งที่ Claude เริ่ม skill ต้องประกาศเป็นข้อความว่า `Using <ชื่อ skill>`
+
 | ขั้น (feature-workflow) | skill ที่ทำงาน | ผลลัพธ์ | คุณต้องทำ |
 |---|---|---|---|
-| 1. Use case + AC | `brainstorming` + `jira-backlog` | `docs/usecases/UC-xx-<name>.md`, ร่าง Story + Sub-task, branch | ตอบคำถาม รีวิว AC **[REVIEW]** |
+| 1. Use case + AC | `using-git-worktrees` → `brainstorming` → `jira-backlog` | worktree + branch `feature/<KEY>-...`, `docs/usecases/UC-xx-<name>.md`, ร่าง Story + Sub-task | ตอบคำถาม รีวิว AC **[REVIEW]** |
 | 2. DB + API spec | `ddd-architecture` (ดู context map) | migration ใหม่, `openapi.yaml`, ตาราง AC ↔ API ↔ DB | รีวิวตาราง **[REVIEW]** |
 | 3. Mock + seed | - | Prism mock เปิดได้, `db/seed.sql` หนึ่งชุดต่อ AC | - |
-| 4. แผนงาน | `writing-plans` | `docs/plans/<KEY>-<ชื่อ>.md` หนึ่ง task ต่อ AC | รีวิวแผน เลือกวิธีทำ **[REVIEW]** |
-| 5. TDD ทีละ AC | `using-git-worktrees` → `subagent-driven-development` หรือ `executing-plans` → `test-driven-development` + `ddd-architecture` | โค้ด + เทสต์ `AC<n>: ...`, commit `<KEY> AC<n>: ...` | ดูรายงาน red/green |
+| 4. แผนงาน | `writing-plans` | `docs/plans/<KEY>-<ชื่อ>.md` หนึ่ง task ต่อ AC จบด้วยคำถาม Subagent-driven หรือ Inline | รีวิวแผน ตอบว่าทำแบบไหน **[REVIEW]** |
+| 5. TDD ทีละ AC | `using-git-worktrees` (ตรวจว่าอยู่ใน worktree เดิม) → `subagent-driven-development` หรือ `executing-plans` → `test-driven-development` + `ddd-architecture` | โค้ด + เทสต์ `AC<n>: ...`, หนึ่ง commit ต่อ AC `<KEY> AC<n>: ...`, รายงาน red/green ต่อ AC | ดูรายงาน red/green |
 | 6. Integration + CI | `test-driven-development` | E2E หนึ่ง flow, CI รัน migrate → seed → test | - |
 | Done | `verification-before-completion` → `requesting-code-review` → `finishing-a-development-branch` | ตาราง AC → เทสต์ → สถานะ, PR | เลือก "เปิด PR" |
 
 ## สถานการณ์ที่ 1: Story ใหม่ (ใช้บ่อยที่สุด)
 
-**เริ่ม**
+**เริ่ม (ทีมที่ใช้ Jira)**
 ```
 เริ่มฟีเจอร์ LIB-12 ยืมหนังสือ: สมาชิกยืมได้ครั้งละไม่เกิน 3 เล่ม ยืมได้ 14 วัน
 ```
+**เริ่ม (ทีมที่ไม่ใช้ Jira)**
+```
+เริ่มฟีเจอร์ UC-12 ยืมหนังสือ: สมาชิกยืมได้ครั้งละไม่เกิน 3 เล่ม ยืมได้ 14 วัน
+```
+ได้ branch `feature/UC-12-borrow-book`, commit `UC-12 AC3: ...`, แผน `docs/plans/UC-12-borrow-book.md` และ backlog เป็นข้อความหรือ CSV ใน `docs/backlog/` Claude ต้องไม่ถาม project key ของ Jira
+
 สิ่งที่ควรเกิด:
-1. Claude ประกาศว่าใช้ `feature-workflow` แล้วเรียก `brainstorming`
-2. ถามคุณ**ทีละคำถาม** เช่น สมาชิกที่ถูกระงับยืมได้ไหม หรือถ้ามีค่าปรับค้างล่ะ ให้ตอบให้ชัด ตัวเลขต้องชัด
-3. เขียน `docs/usecases/UC-01-borrow-book.md` พร้อมตาราง AC รวมเคสไม่สำเร็จ แล้วร่าง Story กับ Sub-task ตาม `jira-backlog`
+1. Claude ขึ้นข้อความ `Using feature-workflow` แล้ว `Using using-git-worktrees` สร้าง worktree พร้อม branch `feature/<KEY>-...` จาก `origin/main` ก่อนเขียนไฟล์ใดๆ
+2. `Using brainstorming` ถามคุณ**ทีละคำถาม** เช่น สมาชิกที่ถูกระงับยืมได้ไหม หรือถ้ามีค่าปรับค้างล่ะ ให้ตอบให้ชัด ตัวเลขต้องชัด
+3. เขียน `docs/usecases/UC-12-borrow-book.md` พร้อมตาราง AC รวมเคสไม่สำเร็จ แล้ว `Using jira-backlog` ร่าง Story กับ Sub-task และ commit use case ใน branch นี้
 4. หยุดรอให้คุณรีวิว
 
 **ถ้า Claude เขียน spec ไปที่ `docs/superpowers/specs/`** หรือกระโดดไปทำแผนเลยหลัง brainstorming ให้บอกว่า:
@@ -40,11 +48,11 @@ AC ผ่าน ไปขั้นที่ 2
 Claude จะทำ migration กับ `openapi.yaml` แล้วแสดงตาราง `AC | API ตอบ | DB ช่วยกันไว้` ให้ดูว่าทุก AC ตกลงที่ใดที่หนึ่ง
 
 **ขั้นที่ 4: เลือกวิธีทำตามแผน**
-หลังเขียนแผน Superpowers จะถามว่าทำแบบไหน:
+หลังเขียนแผน Claude ต้องจบด้วยคำถามว่าทำแบบไหน (ถ้าไม่ถาม ให้ทักว่า "ยังไม่ได้ถามว่าจะทำ Subagent-driven หรือ Inline"):
 - **Subagent-driven (แนะนำสำหรับ Story ที่มีหลาย AC):** subagent ตัวใหม่ทำทีละ task แล้วมี reviewer ตรวจทุก task ได้คุณภาพดีสุด แต่เปลือง token กว่า
 - **Inline / executing-plans (เหมาะกับ Story เล็ก 1-3 AC):** ทำใน session เดียว ประหยัดกว่า
 
-ทั้งสองแบบจะทำต่อเนื่องโดยไม่หยุดถามระหว่าง task แต่รายงานแต่ละ task ต้องมีข้อความ fail ตอน red ตามกติกาใน `AGENTS.md` ให้อ่านตรวจย้อนหลังว่า fail ด้วยเหตุผลที่ถูก (เช่น `LOAN_LIMIT_REACHED` ไม่ใช่ `Cannot find module`)
+ทั้งสองแบบจะทำต่อเนื่องโดยไม่หยุดถามระหว่าง task หนึ่ง AC ได้หนึ่ง commit และรายงาน red/green ต่อ AC ต้องมีข้อความ fail เต็มตามกติกาใน `AGENTS.md` ให้อ่านตรวจย้อนหลังว่า fail ด้วยเหตุผลที่ถูก (เช่น `LOAN_LIMIT_REACHED` ไม่ใช่ `Cannot find module`)
 
 **จบงาน**
 Claude จะรันเช็กลิสต์ Definition of Done ให้ reviewer ตรวจ แล้วถามว่าจะทำยังไงกับ branch ให้ตอบ:
@@ -88,25 +96,25 @@ Superpowers ยอมข้ามขั้นตอนเมื่อผู้�
 
 ก่อนปิด:
 ```
-/handoff ทำ AC4-AC6 ของ LIB-12 ต่อ
+/handoff ทำ AC4-AC6 ของ UC-12 ต่อ
 ```
-handoff จะเขียนสรุปไว้ใน `/tmp` และอ้าง path ของ use case, แผน และ branch แทนการคัดลอกเนื้อหา
+handoff ของทีม (`.claude/skills/handoff`) เก็บไฟล์ไว้ที่ `~/.local/state/claude-handoff/<ชื่อ repo>/` ซึ่ง**ไม่หายเมื่อรีบูต** อยู่นอก repo จึงไม่ถูก commit โดยไม่ตั้งใจ และใช้โฟลเดอร์เดียวกันไม่ว่าจะสั่งจาก repo หลักหรือจาก worktree ในไฟล์จะอ้าง path ของ use case, แผน, branch และ worktree แทนการคัดลอกเนื้อหา
 
-**บน Arch `/tmp` เป็น tmpfs ไฟล์จะหายเมื่อรีบูต** ถ้าจะปิดเครื่อง ให้ย้ายไฟล์ handoff ไปเก็บที่อื่นก่อน (นอก repo) หรือเปิด session ใหม่แล้วอ่านทันที
-
-วันถัดไป:
+วันถัดไป เปิด Claude Code ใน repo (หรือใน worktree ของ Story นั้น) แล้วพิมพ์:
 ```
-อ่าน /tmp/<ไฟล์ handoff> แล้วทำต่อตามแผน docs/plans/LIB-12-borrow-book.md
+อ่าน handoff ล่าสุด แล้วทำต่อ
 ```
 แผนของ Superpowers มี checkbox (`- [ ]`) อยู่แล้ว จึงทำต่อจาก task ที่ยังไม่ติ๊กได้เลย
+
+ไฟล์ handoff ไม่ถูกลบอัตโนมัติ ถ้าอยากล้าง ให้สั่ง "ล้าง handoff ที่เก่ากว่า 30 วัน" Claude จะแสดงรายการให้ยืนยันก่อนลบ
 
 ## เครื่องมือเสริมระหว่างทำงาน
 
 | อยากทำ | ทำแบบนี้ |
 |---|---|
 | ปิด/เปิดโหมดตอบสั้น | พิมพ์ "normal mode" / `/caveman` |
-| ดูผลเทสต์เต็ม (RTK ย่อเหลือแค่ตัวที่ fail) | บอก Claude ว่า "รัน `rtk bypass npm test`" |
-| ดู diff เต็มตอนรีวิว | `rtk bypass git diff origin/main...HEAD` |
+| ดูผลเทสต์เต็ม (RTK ย่อเหลือแค่ตัวที่ fail) | บอก Claude ว่า "รัน `rtk bypass npm test`" ถ้าถูกปฏิเสธสิทธิ์: "เขียนผลเทสต์ลงไฟล์แล้วอ่านด้วย Read" |
+| ดู diff เต็มตอนรีวิว | `rtk bypass git diff origin/main...HEAD` หรือ `git diff origin/main...HEAD > /tmp/review.diff` แล้วอ่านไฟล์ |
 | ดูว่าแก้ไฟล์นี้แล้วกระทบอะไร | "ใช้ code-review-graph ดู impact radius ของการเปลี่ยนแปลงนี้" |
 | ดูว่า RTK ประหยัดไปเท่าไหร่ | `rtk gain` ใน terminal |
 | สร้าง AGENTS.md ย่อยให้ context ที่ใหญ่ขึ้น | "ใช้ intent-layer สร้าง node ให้ src/modules/circulation โดย root คือ AGENTS.md" |
@@ -115,6 +123,7 @@ handoff จะเขียนสรุปไว้ใน `/tmp` และอ้�
 
 | เห็นแบบนี้ | แปลว่า | แก้ |
 |---|---|---|
+| ไม่เห็นข้อความ `Using <skill>` หรือเริ่มเขียนไฟล์ก่อนสร้าง worktree | Claude ไม่ได้ทำตาม `feature-workflow` | บอกว่า "ทำตาม feature-workflow ตั้งแต่ขั้นที่ 1" |
 | ไฟล์ใหม่ใน `docs/superpowers/specs/` หรือ `docs/superpowers/plans/` | Superpowers ไม่ได้อ่าน AGENTS.md | ย้ายไฟล์ไป `docs/usecases/` หรือ `docs/plans/` แล้วเตือน Claude |
 | commit แบบ `feat: ...` หรือ `fix(loan): ...` | `writing-plans` หรือ `caveman-commit` ใช้รูปแบบของตัวเอง | `git commit --amend` เป็น `<KEY> AC<n>: ...` |
 | Claude พูดว่า "Using caveman:lean-build" หรือ "investigate-first" | Caveman skill แย่งงาน Superpowers | บอกให้ใช้ skill ตามตาราง "ลำดับความสำคัญ" ใน AGENTS.md |

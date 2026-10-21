@@ -57,7 +57,13 @@ Caveman ยังมี skill ที่เกี่ยวกับ Caveman Cloud
 | S4 | ถ้าเครื่องไม่มี `node` hook ของ Caveman จะปิดตัวเองเงียบๆ (`command -v node \|\| exit 0`) | `INSTALL.md` ขั้นที่ 0 ติดตั้ง `nodejs` และตรวจ |
 | S5 | hook `PostToolUse` ของ CRG รัน `code-review-graph update` ทุกครั้งที่ Write / Edit / Bash (timeout 30 วินาที) ถ้าบางคนในทีมไม่ได้ติดตั้ง hook จะ error | ทั้งทีมติดตั้ง CRG หรือย้าย hook ไป `.claude/settings.local.json` (`INSTALL.md` ขั้นที่ 6) |
 | S6 | `.mcp.json` ที่ CRG สร้างมี path ของเครื่องแต่ละคน | ใส่ใน `.gitignore` แต่ละคนรัน `install` เอง (`INSTALL.md` ขั้นที่ 6) |
-| S7 | `/handoff` เขียนไฟล์ไว้ใน `/tmp` ซึ่งบน Arch เป็น tmpfs หายเมื่อรีบูต | ย้ายไฟล์ก่อนปิดเครื่อง (`USAGE.md` สถานการณ์ที่ 6) |
+| S7 | `/handoff` ฉบับเดิมเขียนไฟล์ไว้ใน `$TMPDIR` หรือ `/tmp` ซึ่งบน Arch เป็น tmpfs หายเมื่อรีบูต | **แก้แล้ว:** ทีมใช้ฉบับที่แก้ใน `.claude/skills/handoff/` เก็บไว้ที่ `~/.local/state/claude-handoff/<repo>/` ห้ามติดตั้งฉบับเดิมทับ (`INSTALL.md` ขั้นที่ 5) |
+| S9 | `rtk init` ที่ไม่ได้รันใน terminal จริง (เช่นให้ Claude Code รัน) จะตอบ No เองและไม่แก้ `settings.json` (`src/hooks/README.md`: "defaults to No if stdin not terminal") | ใช้ `--auto-patch` (`INSTALL.md` ขั้นที่ 3) |
+| S10 | hook ของ RTK เรียก `rtk` จาก PATH ถ้า Claude Code หาไม่เจอ คำสั่ง shell ทุกคำสั่งพัง Claude Code ที่เปิดจาก launcher ไม่ได้อ่าน `~/.bashrc` | ลิงก์ `rtk` ไว้ใน `~/.local/bin` แล้วตรวจด้วย `bash -c 'command -v rtk'` (`INSTALL.md` ขั้นที่ 3) |
+| S11 | ตัวกรองสิทธิ์ของ auto mode ปฏิเสธ `rtk bypass` เพราะมีคำว่า "bypass" | เพิ่ม allow rule `Bash(rtk bypass:*)` ถ้ายังถูกปฏิเสธ ให้เขียน output ลงไฟล์แล้วอ่านด้วย Read (`AGENTS.md`, `INSTALL.md` ขั้นที่ 3) |
+| S12 | `code-review-graph install` เพิ่ม git hook `pre-commit` ด้วย (`docs/USAGE.md` "Git pre-commit hook") ไม่บล็อก commit แต่ทำให้ commit ช้าลงเล็กน้อย และอาจซ้อนกับ pre-commit ที่ repo มีอยู่แล้ว | บันทึกไว้ใน `INSTALL.md` ขั้นที่ 4 ถ้าไม่ต้องการใช้ `--no-hooks` |
+| S13 | เดิม `feature-workflow` สร้าง branch ตอนขั้นที่ 1 แล้ว `using-git-worktrees` สร้าง worktree ตอนขั้นที่ 5 แต่ git checkout branch เดียวกันสองที่ไม่ได้ | **แก้แล้ว:** สร้าง worktree พร้อม branch ครั้งเดียวที่ต้นขั้นที่ 1 ขั้นที่ 5 แค่ตรวจว่ายังอยู่ในนั้น (`feature-workflow`, `AGENTS.md`) ไม่เลือกทางสร้าง worktree ที่ขั้นที่ 5 เพราะ use case กับ spec ต้อง commit ที่ไหนสักแห่งก่อน และที่เดียวที่เหลือคือ `main` ซึ่งห้าม commit |
+| S14 | status line ของ Caveman ใช้ช่อง `statusLine` ซึ่ง Claude Code มีได้อันเดียว | ไม่บังคับ ถ้ามี status line อื่นอยู่แล้วให้เลือกอย่างใดอย่างหนึ่ง (`INSTALL.md` ขั้นที่ 2) |
 | S8 | Superpowers 7.x ลบคำสั่ง `/brainstorm`, `/write-plan`, `/execute-plan` แล้ว บทความเก่าหลายที่ยังอ้างถึง | เรียกชื่อ skill แทน เช่น `/superpowers:brainstorming` (`USAGE.md`) |
 
 ## 🟢 ตรวจแล้วไม่ขัดกัน
